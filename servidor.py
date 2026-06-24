@@ -49,10 +49,10 @@ def carregar_config() -> dict:
     return cfg
 
 
-def criar_cliente_ia(usar_ia: bool):
+def criar_cliente_ia(usar_ia: bool, chave: str | None = None):
     if not usar_ia:
         return None
-    chave = os.getenv("ANTHROPIC_API_KEY")
+    chave = (chave or "").strip() or os.getenv("ANTHROPIC_API_KEY")
     if not chave:
         return None
     try:
@@ -93,9 +93,16 @@ def rota_analisar():
             return jsonify({"erro": "Data de corte inválida (use AAAA-MM-DD)."}), 400
 
     cfg = carregar_config()
-    usar_ia = bool(d.get("usar_ia"))
-    cliente_ia = criar_cliente_ia(usar_ia)
+    chave_ia = (d.get("chave_ia") or "").strip()
+    usar_ia = bool(d.get("usar_ia")) or bool(chave_ia)
+    cliente_ia = criar_cliente_ia(usar_ia, chave_ia)
     ia_sem_chave = usar_ia and cliente_ia is None
+    # Guarda a chave para as próximas vezes, se o usuário pediu.
+    if d.get("salvar_chave") and chave_ia:
+        try:
+            Path(".env").write_text(f"ANTHROPIC_API_KEY={chave_ia}\n", encoding="utf-8")
+        except Exception:
+            pass
     try:
         linhas, detalhes = analisar(
             pasta_livros, pasta_fichamentos, cfg,

@@ -39,7 +39,16 @@
         <label class="chk"><input id="usar_ia" type="checkbox" {% if tem_ia %}checked{% endif %}> Usar IA nos casos em dúvida</label>
         <label class="chk"><input id="usar_cache" type="checkbox" checked> Usar cache (economiza tokens)</label>
         {% if modo_eleitos %}<span class="pill ok">Modo lista de eleitos ativo</span>{% endif %}
+        {% if tem_ia %}<span class="pill ok">Chave da IA já configurada</span>{% endif %}
       </div>
+      <details class="apikey">
+        <summary>🔑 Chave da IA (para decidir os casos em dúvida)</summary>
+        <p class="sub">Cole sua chave da Anthropic (começa com <code>sk-ant-</code>). Ela fica só no seu computador. Veja no guia como obter uma.</p>
+        <label>Chave
+          <input id="chave_ia" type="password" placeholder="sk-ant-..." autocomplete="off">
+        </label>
+        <label class="chk"><input id="salvar_chave" type="checkbox" checked> Guardar para as próximas vezes</label>
+      </details>
       <button id="btn-analisar" class="primario">🔎 Analisar biblioteca</button>
       <span id="status" class="status"></span>
     </section>

@@ -147,6 +147,49 @@ me avise que eu simplifico esse passo.)
 
 ---
 
+## Parte 8 — Ligar a IA para decidir os casos "em dúvida"
+
+### O que é a "chave da IA"?
+
+Quando as regras automáticas **não conseguem** decidir o grau de um livro
+(porque o título não tem palavras-chave, ou é um PDF escaneado), o programa
+pode pedir ajuda à **inteligência artificial da Anthropic** (a mesma empresa do
+Claude). Para isso ele precisa de uma **"chave"** — pense nela como uma **senha
+pessoal** que autoriza o programa a usar esse serviço.
+
+### Tem custo?
+
+Sim, mas **muito baixo**. Você paga só pelo que usa. Para classificar uma
+biblioteca inteira (mesmo as ~109 dúvidas), o gasto costuma ser de **alguns
+centavos** (usamos o modelo mais barato, e só enviamos o título + sumário, nunca
+o livro inteiro). Há um valor mínimo de crédito ao criar a conta (em geral US$ 5).
+
+> Se preferir **não pagar nada**, pule esta parte e use só o **OCR** (Parte 7):
+> ele lê o conteúdo dos PDFs escaneados de graça e já resolve muitas dúvidas.
+> O que sobrar, você decide manualmente no catálogo.
+
+### Como conseguir uma chave (uma vez)
+
+1. Acesse **https://console.anthropic.com** e crie uma conta (ou entre).
+2. No menu, vá em **"Billing"** (Cobrança) e **adicione um crédito** (ex.: US$ 5)
+   com cartão.
+3. Vá em **"API Keys"** → **"Create Key"** (Criar chave).
+4. **Copie** a chave que aparecer (começa com `sk-ant-...`).
+   ⚠️ Ela só aparece **uma vez** — copie e guarde num lugar seguro.
+
+### Como usar a chave no programa
+
+1. Abra o programa (`Iniciar-RAIP.bat`).
+2. Clique em **"🔑 Chave da IA"** (logo abaixo das opções).
+3. **Cole** a chave no campo. Deixe marcado **"Guardar para as próximas vezes"**
+   (assim você só faz isso uma vez).
+4. Clique em **🔎 Analisar biblioteca**. Agora as dúvidas serão decididas pela IA.
+
+> 🔒 A chave fica **só no seu computador** (num arquivo `.env`). Ela nunca é
+> enviada para o GitHub nem para mim.
+
+---
+
 ## ❗ Se algo der errado
 
 | Problema | O que fazer |
