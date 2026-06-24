@@ -4,10 +4,12 @@ e monta as linhas do relatório. Respeita o cache para economizar tokens.
 """
 from __future__ import annotations
 
+from datetime import datetime
 from pathlib import Path
 from typing import Callable
 
 from .cache import Cache
+from .datas import apos_corte, data_referencia
 from .elegibilidade import avaliar, carregar_eleitos
 from .fichamentos import carregar_fichamentos, encontrar_fichamento
 from .leitura import listar_livros, ler_livro
@@ -20,16 +22,21 @@ def analisar(
     cliente_ia=None,
     limiar_fichamento: int = 80,
     usar_cache: bool = True,
+    data_corte: datetime | None = None,
     progresso: Callable[[int, int, str], None] | None = None,
 ) -> tuple[list[dict], dict[str, list]]:
     """
     Retorna (linhas, detalhes_capitulos).
+    `data_corte`: se informado, só cataloga livros cuja data (criação OU
+    modificação) seja igual/posterior ao corte.
     `progresso(i, total, nome)` é chamado a cada livro (para barra de progresso).
     """
     cache = Cache()
     fichamentos = carregar_fichamentos(pasta_fichamentos)
     eleitos = carregar_eleitos(config)
-    arquivos = listar_livros(pasta_livros)
+    # Aplica o corte de data já na listagem (varre um a um e descarta antigos).
+    todos = listar_livros(pasta_livros)
+    arquivos = [c for c in todos if apos_corte(c, data_corte)]
     total = len(arquivos)
 
     linhas: list[dict] = []
@@ -39,6 +46,7 @@ def analisar(
         if progresso:
             progresso(i, total, caminho.name)
 
+        data_add = data_referencia(caminho).strftime("%Y-%m-%d")
         livro = ler_livro(caminho)
         detalhes[caminho.name] = [
             {"titulo": c.titulo, "nivel": c.nivel} for c in livro.capitulos
@@ -50,7 +58,8 @@ def analisar(
                 "Pastas temáticas": "-", "Método": "-",
                 "Motivo": livro.erro, "Nº Capítulos": 0, "Fichado?": "-",
                 "Fichamento correspondente": "-", "Similaridade": 0,
-                "Formato": livro.formato or "-", "Arquivo": caminho.name,
+                "Formato": livro.formato or "-", "Adicionado em": data_add,
+                "Arquivo": caminho.name,
             })
             continue
 
@@ -100,6 +109,7 @@ def analisar(
             "Fichamento correspondente": ficha,
             "Similaridade": sim,
             "Formato": livro.formato,
+            "Adicionado em": data_add,
             "Arquivo": caminho.name,
         })
 

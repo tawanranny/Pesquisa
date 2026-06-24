@@ -8,7 +8,7 @@ import pandas as pd
 COLUNAS = [
     "Livro", "Grau", "Elegível", "Pastas temáticas", "Método", "Motivo",
     "Nº Capítulos", "Fichado?", "Fichamento correspondente", "Similaridade",
-    "Formato", "Arquivo",
+    "Formato", "Adicionado em", "Arquivo",
 ]
 
 

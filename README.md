@@ -1,12 +1,21 @@
 # 📚 Organizador de Pesquisa — Projeto RAIP
 
-App com interface (Streamlit) que lê seus **livros** e **fichamentos** em `.docx`
-e **PDF** (com texto ou escaneado via OCR), direto da pasta do **OneDrive
-sincronizada** no seu computador, e:
+**App web local** (interface HTML própria, servida por Flask) que lê seus
+**livros** e **fichamentos** em `.docx` e **PDF** (com texto ou escaneado via
+OCR), direto da pasta do **OneDrive sincronizada** no seu computador, e:
 
-1. **Detecta os livros elegíveis** à pesquisa, segundo os critérios do projeto RAIP;
-2. **Organiza cada livro por capítulos** (lidos pelos estilos de título do Word — sem gastar tokens);
-3. **Mostra quais elegíveis ainda não foram fichados** (cruzando com a pasta de fichamentos).
+1. **Examina cada livro um a um** e cataloga **somente os adicionados a partir
+   de uma data de corte** (padrão: 2.º semestre de 2025 — 01/07/2025);
+2. **Classifica por grau de incorporação** (1.º/2.º/3.º/Irrelevante) e distribui
+   nas **9 pastas temáticas** do RAIP;
+3. **Organiza cada livro por capítulos** (sem gastar tokens);
+4. **Mostra quais elegíveis ainda não foram fichados** (cruza com os fichamentos);
+5. Mantém um **catálogo editável** (Seção 8) salvo em CSV.
+
+> ⚠️ **Onde rodar:** este programa roda **na sua máquina**, onde o OneDrive está
+> sincronizado — é ele que abre fisicamente a pasta e percorre os livros. A data
+> de corte usa **criação OU modificação** do arquivo (no Windows, a data de
+> criação é a de quando o arquivo passou a existir na pasta).
 
 ## 🧠 Como ele economiza tokens
 
@@ -72,19 +81,20 @@ Sem chave, o app funciona normalmente: os casos em dúvida ficam marcados como
 ## 4. Rodar o app
 
 ```bash
-streamlit run app.py
+python servidor.py
 ```
 
-Abre no navegador. Na barra lateral:
+Ele abre sozinho no navegador em **http://127.0.0.1:5000**. Na tela:
 
-- Informe a **pasta de livros** e a **pasta de fichamentos** (os caminhos do OneDrive
+- Informe a **pasta de livros** e a **pasta de fichamentos** (caminhos do OneDrive
   sincronizado, ex.: `C:\Users\SeuNome\OneDrive\Pesquisa\livros`).
+- Ajuste a **data de corte** (padrão 01/07/2025 — só cataloga o que foi adicionado
+  a partir dela).
 - Clique em **🔎 Analisar biblioteca**.
 
 Você verá:
 - métricas (total, elegíveis, fichados, falta fichar);
-- distribuição por **grau de incorporação** e tabela filtrável (por grau);
-- capítulos de cada livro;
+- distribuição por **grau de incorporação** e tabela filtrável (por grau e busca);
 - o **catálogo editável (Seção 8)** — veja abaixo;
 - botões para exportar **Excel** e **relatório Markdown**.
 
@@ -107,16 +117,22 @@ pendência bibliográfica, localização física e observações.
 ## 📁 Estrutura do projeto
 
 ```
-app.py                      # interface Streamlit
-config/criterios_raip.yaml  # critérios de elegibilidade (você preenche)
+servidor.py                 # app web local (Flask) — interface principal
+web/
+  templates/index.html      # interface HTML
+  static/style.css          # estilo
+  static/app.js             # lógica do front (chama o servidor)
+config/criterios_raip.yaml  # critérios de classificação (você preenche)
 core/
   modelos.py                # estruturas de dados compartilhadas
   leitura.py                # despachante: escolhe leitor por extensão
   leitura_docx.py           # lê .docx, capítulos por estilos de título
   leitura_pdf.py            # lê PDF (texto + OCR), capítulos pelos marcadores
-  elegibilidade.py          # lista de eleitos + regras + IA (casos em dúvida)
+  datas.py                  # data dos arquivos (filtro por data de adição)
+  elegibilidade.py          # grau de incorporação + pastas + IA (casos em dúvida)
   fichamentos.py            # cruzamento livro ↔ fichamento (nome aproximado)
   catalogo.py               # catálogo editável (Seção 8): campos por registro
+  importacao.py             # importa lista de títulos mapeados do RAIP
   cache.py                  # cache por hash (economiza tokens)
   analise.py                # orquestra tudo
   relatorio.py              # exporta Excel / Markdown

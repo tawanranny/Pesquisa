@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Organizador de Pesquisa — RAIP</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header class="topo">
+    <div class="topo-inner">
+      <h1>📚 Organizador de Pesquisa <span class="tag">RAIP</span></h1>
+      <p class="sub">Regime Ambiental Internacional dos Portos — catálogo por grau de incorporação e pastas temáticas</p>
+    </div>
+  </header>
+
+  <main>
+    <!-- Configuração -->
+    <section class="card">
+      <h2>⚙️ Configuração</h2>
+      <div class="grid">
+        <label>Pasta de livros (OneDrive sincronizado)
+          <input id="pasta_livros" type="text" placeholder="Ex.: C:\Users\Tawan\OneDrive\Pesquisa\livros">
+        </label>
+        <label>Pasta de fichamentos
+          <input id="pasta_fichamentos" type="text" placeholder="Ex.: C:\Users\Tawan\OneDrive\Pesquisa\fichamentos">
+        </label>
+        <label>Catalogar adicionados a partir de
+          <input id="data_corte" type="date" value="{{ corte_padrao }}">
+          <small>Critério: data de criação OU de modificação ≥ esta data.</small>
+        </label>
+        <label>Rigor do casamento livro↔fichamento
+          <input id="limiar_fichamento" type="range" min="50" max="100" value="80"
+                 oninput="document.getElementById('limv').textContent=this.value">
+          <small><span id="limv">80</span>% de similaridade mínima</small>
+        </label>
+      </div>
+      <div class="linha-opcoes">
+        <label class="chk"><input id="usar_ia" type="checkbox" {% if tem_ia %}checked{% endif %}> Usar IA nos casos em dúvida</label>
+        <label class="chk"><input id="usar_cache" type="checkbox" checked> Usar cache (economiza tokens)</label>
+        {% if modo_eleitos %}<span class="pill ok">Modo lista de eleitos ativo</span>{% endif %}
+      </div>
+      <button id="btn-analisar" class="primario">🔎 Analisar biblioteca</button>
+      <span id="status" class="status"></span>
+    </section>
+
+    <!-- Resumo -->
+    <section id="resumo" class="card oculto">
+      <h2>📊 Resumo</h2>
+      <div class="metricas">
+        <div class="metrica"><span id="m-total">0</span><label>Livros</label></div>
+        <div class="metrica"><span id="m-eleg">0</span><label>Elegíveis</label></div>
+        <div class="metrica"><span id="m-fich">0</span><label>Já fichados</label></div>
+        <div class="metrica alerta"><span id="m-falta">0</span><label>Falta fichar</label></div>
+      </div>
+      <div id="graus-barra" class="graus-barra"></div>
+    </section>
+
+    <!-- Resultado -->
+    <section id="sec-resultado" class="card oculto">
+      <h2>📖 Resultado</h2>
+      <div class="filtros">
+        <label class="chk"><input id="f-eleg" type="checkbox" checked> Só elegíveis</label>
+        <label class="chk"><input id="f-falta" type="checkbox"> Só não fichados</label>
+        <select id="f-grau"><option value="">Todos os graus</option></select>
+        <input id="f-busca" type="text" placeholder="🔍 buscar título...">
+      </div>
+      <div class="tabela-wrap">
+        <table id="tabela">
+          <thead><tr>
+            <th>Livro</th><th>Grau</th><th>Pastas</th><th>Caps.</th>
+            <th>Fichado?</th><th>Adicionado</th><th>Motivo</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Catálogo -->
+    <section id="sec-catalogo" class="card oculto">
+      <h2>🗂️ Catálogo (Seção 8)</h2>
+      <p class="sub">Campos automáticos já preenchidos (em cinza). Edite o restante e clique em salvar — suas edições são preservadas ao reanalisar.</p>
+      <label class="inline">Arquivo do catálogo:
+        <input id="cat_caminho" type="text" value="catalogo_raip.csv">
+      </label>
+      <div class="acoes">
+        <button id="btn-carregar-cat">↻ Montar catálogo</button>
+        <button id="btn-salvar-cat" class="primario">💾 Salvar catálogo</button>
+        <span id="cat-status" class="status"></span>
+      </div>
+      <div class="tabela-wrap">
+        <table id="tabela-cat"><thead></thead><tbody></tbody></table>
+      </div>
+    </section>
+
+    <!-- Exportar / Importar -->
+    <section class="card">
+      <h2>⬇️ Exportar &amp; 📥 Importar</h2>
+      <div class="acoes">
+        <a class="botao" href="/exportar/excel">Baixar Excel (.xlsx)</a>
+        <a class="botao" href="/exportar/md">Baixar relatório (.md)</a>
+      </div>
+      <details class="importar">
+        <summary>📥 Importar lista de títulos mapeados (RAIP)</summary>
+        <p class="sub">Cole a lista (tabela, ou um título por linha; pode ter colunas Grau/Pasta).</p>
+        <textarea id="imp_texto" rows="6" placeholder="| Título | Autor | Grau | Pasta |&#10;..."></textarea>
+        <div class="acoes">
+          <label class="chk"><input id="imp_eleitos" type="checkbox" checked> Salvar como lista de eleitos</label>
+          <button id="btn-importar">Importar</button>
+          <span id="imp-status" class="status"></span>
+        </div>
+      </details>
+    </section>
+
+    <section class="card escopo">
+      <details>
+        <summary>📋 Escopo do projeto (resumo)</summary>
+        <pre>{{ escopo }}</pre>
+      </details>
+    </section>
+  </main>
+
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
