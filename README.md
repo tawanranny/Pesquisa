@@ -1,5 +1,9 @@
 # 📚 Organizador de Pesquisa — Projeto RAIP
 
+> 🟢 **Nunca usou nada disso? Comece pelo [GUIA-DE-USO.md](GUIA-DE-USO.md)** —
+> passo a passo do zero (instalar, baixar, rodar). No Windows, depois de
+> instalado, abrir é só **dois cliques** no arquivo **`Iniciar-RAIP.bat`**.
+
 **App web local** (interface HTML própria, servida por Flask) que lê seus
 **livros** e **fichamentos** em `.docx` e **PDF** (com texto ou escaneado via
 OCR), direto da pasta do **OneDrive sincronizada** no seu computador, e:
