@@ -83,9 +83,24 @@ Abre no navegador. Na barra lateral:
 
 Você verá:
 - métricas (total, elegíveis, fichados, falta fichar);
-- tabela filtrável;
+- distribuição por **grau de incorporação** e tabela filtrável (por grau);
 - capítulos de cada livro;
+- o **catálogo editável (Seção 8)** — veja abaixo;
 - botões para exportar **Excel** e **relatório Markdown**.
+
+## 4.1 Catálogo editável (Seção 8)
+
+Cada obra vira um registro com os campos do documento operacional: referência
+(NBR 6023:2025), autor(es), ano, idioma, **pasta(s) temática(s)**, **grau de
+incorporação**, **fichamento disponível?**, **capítulo(s) de incidência**,
+pendência bibliográfica, localização física e observações.
+
+- Os campos **automáticos** (referência inicial, grau, pastas, fichamento) já
+  vêm preenchidos pela análise; os demais você edita direto na tabela.
+- Clique em **💾 Salvar catálogo** para gravar em `catalogo_raip.csv`.
+- Ao **reanalisar** a biblioteca, novos livros entram e **suas edições salvas
+  são preservadas** (só os campos em branco recebem valores automáticos).
+- Campos com múltiplos valores (pastas, capítulos) usam `;` como separador.
 
 ---
 
@@ -101,6 +116,7 @@ core/
   leitura_pdf.py            # lê PDF (texto + OCR), capítulos pelos marcadores
   elegibilidade.py          # lista de eleitos + regras + IA (casos em dúvida)
   fichamentos.py            # cruzamento livro ↔ fichamento (nome aproximado)
+  catalogo.py               # catálogo editável (Seção 8): campos por registro
   cache.py                  # cache por hash (economiza tokens)
   analise.py                # orquestra tudo
   relatorio.py              # exporta Excel / Markdown

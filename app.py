@@ -2,9 +2,10 @@
 Organizador de Pesquisa — Projeto RAIP
 =======================================
 App com interface (Streamlit) para:
-  • detectar quais livros são ELEGÍVEIS à pesquisa (critérios do RAIP);
-  • organizar cada livro por CAPÍTULOS (estilos de título do Word);
-  • verificar quais elegíveis ainda NÃO foram FICHADOS.
+  • classificar cada livro por GRAU DE INCORPORAÇÃO e PASTAS TEMÁTICAS (RAIP);
+  • organizar cada livro por CAPÍTULOS;
+  • verificar quais elegíveis ainda NÃO foram FICHADOS;
+  • manter um CATÁLOGO editável (Seção 8) com os campos de cada registro.
 
 Como rodar:
     pip install -r requirements.txt
@@ -19,6 +20,7 @@ import streamlit as st
 import yaml
 from dotenv import load_dotenv
 
+from core import catalogo as cat
 from core.analise import analisar
 from core.cache import Cache
 from core.relatorio import exportar_excel, exportar_markdown, para_dataframe
@@ -142,6 +144,10 @@ if st.button("🔎 Analisar biblioteca", type="primary"):
         barra.empty()
         st.session_state["linhas"] = linhas
         st.session_state["detalhes"] = detalhes
+        # Força reconstrução do catálogo (capta livros novos; preserva edições
+        # salvas no arquivo .csv).
+        st.session_state.pop("catalogo_df", None)
+        st.session_state.pop("editor_catalogo", None)
 
 
 # ------------------------------ Resultados -------------------------------
@@ -190,6 +196,57 @@ if "linhas" in st.session_state:
                     st.write(f"{'　' * (c['nivel'] - 1)}• {c['titulo']}")
             else:
                 st.caption("Nenhum capítulo detectado pelos estilos de título do Word.")
+
+    # ----------------------------------------------------------------------
+    # Catálogo editável (Seção 8 do documento RAIP)
+    # ----------------------------------------------------------------------
+    st.subheader("🗂️ Catálogo (Seção 8) — campos editáveis")
+    st.caption(
+        "Os campos automáticos (referência, grau, pastas, fichamento) já vêm "
+        "preenchidos pela análise. Edite o restante (autor, ano, idioma, "
+        "capítulos de incidência, pendências…). Use **Salvar catálogo** para "
+        "guardar — suas edições são preservadas ao reanalisar a biblioteca."
+    )
+
+    caminho_cat = Path(
+        st.text_input("Arquivo do catálogo (.csv)", value="catalogo_raip.csv")
+    )
+
+    # Monta o catálogo automático e mescla com o que já estiver salvo.
+    auto = cat.construir_catalogo(linhas)
+    if "catalogo_df" not in st.session_state:
+        st.session_state["catalogo_df"] = cat.mesclar(auto, cat.carregar(caminho_cat))
+
+    cfg_cols = {
+        cat.CHAVE: st.column_config.TextColumn("Arquivo", disabled=True),
+        "Ano de publicação": st.column_config.TextColumn("Ano"),
+        "Idioma original": st.column_config.SelectboxColumn(
+            "Idioma original", options=cat.IDIOMAS),
+        "Grau de incorporação": st.column_config.SelectboxColumn(
+            "Grau de incorporação", options=cat.GRAUS),
+        "Fichamento disponível?": st.column_config.SelectboxColumn(
+            "Fichamento disponível?", options=cat.FICHAMENTO),
+        "Capítulo(s) de incidência": st.column_config.TextColumn(
+            "Capítulo(s) de incidência",
+            help="Múltiplos separados por ';'. Ex.: Introdução; Cap. 2; Cap. 4"),
+        "Pasta(s) temática(s)": st.column_config.TextColumn(
+            "Pasta(s) temática(s)", help="Múltiplas separadas por ';'"),
+    }
+    editado = st.data_editor(
+        st.session_state["catalogo_df"],
+        column_config=cfg_cols, use_container_width=True,
+        hide_index=True, num_rows="fixed", key="editor_catalogo",
+    )
+
+    cc1, cc2 = st.columns(2)
+    if cc1.button("💾 Salvar catálogo"):
+        cat.salvar(editado, caminho_cat)
+        st.session_state["catalogo_df"] = editado
+        st.success(f"Catálogo salvo em {caminho_cat}")
+    cc2.download_button(
+        "⬇️ Baixar catálogo (.csv)", data=cat.para_csv_bytes(editado),
+        file_name="catalogo_raip.csv", mime="text/csv",
+    )
 
     st.subheader("⬇️ Exportar")
     e1, e2 = st.columns(2)
