@@ -52,6 +52,14 @@ button:hover, .botao:hover { background: #f0f4f8; }
 .pill { padding: 3px 12px; border-radius: 20px; font-size: .8rem; font-weight: 600; }
 .pill.ok { background: #d8f3ee; color: var(--acento); }
 
+.ia-modo { border: 1px solid var(--borda); border-radius: 11px; padding: 12px 16px; margin: 8px 0; }
+.ia-modo legend { font-weight: 600; font-size: .85rem; color: var(--azul); padding: 0 6px; }
+.radio { flex-direction: row; align-items: flex-start; gap: 8px; font-weight: 400; margin: 6px 0; }
+.radio em { font-style: normal; font-size: .85rem; }
+.radio em.ok { color: var(--acento); }
+.radio em.aten { color: var(--alerta); }
+#bloco-chave { margin-top: 8px; padding-top: 10px; border-top: 1px dashed var(--borda); }
+
 .avisos { display: flex; flex-direction: column; gap: 8px; }
 .aviso { background: #fff4e5; border: 1px solid #f0c987; color: #8a5a00; padding: 12px 16px; border-radius: 11px; font-size: .92rem; }
 

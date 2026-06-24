@@ -36,19 +36,32 @@
         </label>
       </div>
       <div class="linha-opcoes">
-        <label class="chk"><input id="usar_ia" type="checkbox" {% if tem_ia %}checked{% endif %}> Usar IA nos casos em dúvida</label>
+        <label class="chk"><input id="usar_ia" type="checkbox" checked> Usar IA nos casos em dúvida</label>
         <label class="chk"><input id="usar_cache" type="checkbox" checked> Usar cache (economiza tokens)</label>
         {% if modo_eleitos %}<span class="pill ok">Modo lista de eleitos ativo</span>{% endif %}
-        {% if tem_ia %}<span class="pill ok">Chave da IA já configurada</span>{% endif %}
+        {% if tem_claude_code %}<span class="pill ok">Claude Code detectado</span>{% endif %}
       </div>
-      <details class="apikey">
-        <summary>🔑 Chave da IA (para decidir os casos em dúvida)</summary>
-        <p class="sub">Cole sua chave da Anthropic (começa com <code>sk-ant-</code>). Ela fica só no seu computador. Veja no guia como obter uma.</p>
-        <label>Chave
-          <input id="chave_ia" type="password" placeholder="sk-ant-..." autocomplete="off">
+      <fieldset class="ia-modo">
+        <legend>Como decidir os casos em dúvida</legend>
+        <label class="radio">
+          <input type="radio" name="backend" value="max" checked>
+          <span><strong>Usar meu plano Max</strong> (via Claude Code — sem custo extra)
+            {% if not tem_claude_code %}<em class="aten"> ⚠️ Claude Code ainda não detectado — veja a Parte 8 do guia.</em>{% endif %}
+          </span>
         </label>
-        <label class="chk"><input id="salvar_chave" type="checkbox" checked> Guardar para as próximas vezes</label>
-      </details>
+        <label class="radio">
+          <input type="radio" name="backend" value="api">
+          <span><strong>Usar chave de API</strong> (cobrança por uso)
+            {% if tem_ia %}<em class="ok"> ✓ chave já configurada</em>{% endif %}
+          </span>
+        </label>
+        <div id="bloco-chave" class="oculto">
+          <label>🔑 Chave da Anthropic (começa com <code>sk-ant-</code>)
+            <input id="chave_ia" type="password" placeholder="sk-ant-..." autocomplete="off">
+          </label>
+          <label class="chk"><input id="salvar_chave" type="checkbox" checked> Guardar para as próximas vezes</label>
+        </div>
+      </fieldset>
       <button id="btn-analisar" class="primario">🔎 Analisar biblioteca</button>
       <span id="status" class="status"></span>
     </section>

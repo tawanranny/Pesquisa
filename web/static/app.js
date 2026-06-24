@@ -33,13 +33,15 @@ async function analisar() {
   $("btn-analisar").disabled = true;
   try {
     const chave = ($("chave_ia") && $("chave_ia").value) || "";
+    const backend = document.querySelector('input[name="backend"]:checked').value;
     const j = await postJSON("/analisar", {
       pasta_livros: $("pasta_livros").value,
       pasta_fichamentos: $("pasta_fichamentos").value,
       data_corte: $("data_corte").value,
       limiar_fichamento: $("limiar_fichamento").value,
-      usar_ia: $("usar_ia").checked || !!chave,
+      usar_ia: $("usar_ia").checked,
       usar_cache: $("usar_cache").checked,
+      backend: backend,
       chave_ia: chave,
       salvar_chave: $("salvar_chave") && $("salvar_chave").checked,
     });
@@ -202,3 +204,12 @@ $("btn-salvar-cat").addEventListener("click", salvarCatalogo);
 $("btn-importar").addEventListener("click", importar);
 ["f-eleg", "f-falta", "f-grau", "f-busca"].forEach((id) =>
   $(id).addEventListener("input", renderTabela));
+
+// Mostra o campo da chave só quando o modo "API" estiver selecionado.
+function alternarChave() {
+  const backend = document.querySelector('input[name="backend"]:checked').value;
+  $("bloco-chave").classList.toggle("oculto", backend !== "api");
+}
+document.querySelectorAll('input[name="backend"]').forEach((r) =>
+  r.addEventListener("change", alternarChave));
+alternarChave();

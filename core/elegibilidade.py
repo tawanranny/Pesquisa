@@ -195,9 +195,9 @@ def avaliar(livro, config, cliente_ia=None, eleitos=None):
 
 
 def _avaliar_com_ia(livro, config, cliente_ia, pastas):
-    """Classifica via IA usando apenas título + sumário (token mínimo)."""
+    """Classifica via IA usando apenas título + sumário (token mínimo).
+    `cliente_ia` é uma função: perguntar(prompt) -> str (backend Max ou API)."""
     ia_cfg = config.get("ia", {}) or {}
-    modelo = ia_cfg.get("modelo", "claude-haiku-4-5-20251001")
     max_ctx = int(ia_cfg.get("max_caracteres_contexto", 4000))
     escopo = (config.get("escopo_pesquisa") or "").strip()
 
@@ -213,12 +213,8 @@ def _avaliar_com_ia(livro, config, cliente_ia, pastas):
         "Na 2.ª linha, uma justificativa curta."
     )
     try:
-        resp = cliente_ia.messages.create(
-            model=modelo, max_tokens=140,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        texto = resp.content[0].text.strip()
-        rotulo = texto.splitlines()[0].strip().upper()
+        texto = (cliente_ia(prompt) or "").strip()
+        rotulo = texto.splitlines()[0].strip().upper() if texto else ""
         if rotulo.startswith("IRREL"):
             grau, elegivel = IRRELEVANTE, False
         elif rotulo.startswith("1"):

@@ -149,44 +149,53 @@ me avise que eu simplifico esse passo.)
 
 ## Parte 8 — Ligar a IA para decidir os casos "em dúvida"
 
-### O que é a "chave da IA"?
-
 Quando as regras automáticas **não conseguem** decidir o grau de um livro
-(porque o título não tem palavras-chave, ou é um PDF escaneado), o programa
-pode pedir ajuda à **inteligência artificial da Anthropic** (a mesma empresa do
-Claude). Para isso ele precisa de uma **"chave"** — pense nela como uma **senha
-pessoal** que autoriza o programa a usar esse serviço.
+(o título não tem palavras-chave, ou é um PDF escaneado), o programa pede ajuda
+à inteligência artificial. Há **dois caminhos** — escolha **um**.
 
-### Tem custo?
+### ⭐ Caminho A (recomendado p/ você): usar o seu plano Max — sem custo extra
 
-Sim, mas **muito baixo**. Você paga só pelo que usa. Para classificar uma
-biblioteca inteira (mesmo as ~109 dúvidas), o gasto costuma ser de **alguns
-centavos** (usamos o modelo mais barato, e só enviamos o título + sumário, nunca
-o livro inteiro). Há um valor mínimo de crédito ao criar a conta (em geral US$ 5).
+Você já paga o **plano Max**, e ele inclui o **Claude Code**. O programa pode
+usar o Claude Code para decidir as dúvidas, **sem chave de API e sem custo
+adicional**. Só precisa instalar o Claude Code no seu PC, uma vez.
 
-> Se preferir **não pagar nada**, pule esta parte e use só o **OCR** (Parte 7):
-> ele lê o conteúdo dos PDFs escaneados de graça e já resolve muitas dúvidas.
-> O que sobrar, você decide manualmente no catálogo.
+1. **Instalar o Node.js** (necessário para instalar o Claude Code):
+   - Acesse **https://nodejs.org** e baixe a versão **LTS**.
+   - Instale (pode avançar com as opções padrão).
+2. **Instalar o Claude Code**:
+   - Abra o **PowerShell** (aperte a tecla Windows, digite `PowerShell`, Enter).
+   - Cole este comando e aperte Enter:
+     ```
+     npm install -g @anthropic-ai/claude-code
+     ```
+   - Espere terminar. (Há também um instalador alternativo na documentação
+     oficial: https://docs.claude.com/claude-code .)
+3. **Fazer login com sua conta Max**:
+   - Ainda no PowerShell, digite `claude` e aperte Enter.
+   - Vai abrir o navegador para você **entrar com a mesma conta do seu Max**.
+   - Depois de logar, pode fechar (digite `/exit` e Enter, ou feche a janela).
+4. **No programa**: deixe marcado **"Usar meu plano Max"** e clique em
+   **🔎 Analisar biblioteca**. Pronto — as dúvidas serão decididas usando o Max.
 
-### Como conseguir uma chave (uma vez)
+> ⏳ Com muitas dúvidas, essa etapa pode levar **alguns minutos** (cada livro é
+> uma consulta). Os resultados ficam em cache: da segunda vez é instantâneo.
+> Se aparecer o aviso *"Claude Code não encontrado"*, refaça os passos 2 e 3.
 
-1. Acesse **https://console.anthropic.com** e crie uma conta (ou entre).
-2. No menu, vá em **"Billing"** (Cobrança) e **adicione um crédito** (ex.: US$ 5)
-   com cartão.
-3. Vá em **"API Keys"** → **"Create Key"** (Criar chave).
-4. **Copie** a chave que aparecer (começa com `sk-ant-...`).
-   ⚠️ Ela só aparece **uma vez** — copie e guarde num lugar seguro.
+### Caminho B (alternativa): usar uma chave de API (cobrança por uso)
 
-### Como usar a chave no programa
+Se preferir não instalar o Claude Code, dá para usar uma **chave de API**. Tem
+um **custo baixo** (alguns centavos para a biblioteca toda; mínimo de crédito de
+~US$ 5 ao criar a conta).
 
-1. Abra o programa (`Iniciar-RAIP.bat`).
-2. Clique em **"🔑 Chave da IA"** (logo abaixo das opções).
-3. **Cole** a chave no campo. Deixe marcado **"Guardar para as próximas vezes"**
-   (assim você só faz isso uma vez).
-4. Clique em **🔎 Analisar biblioteca**. Agora as dúvidas serão decididas pela IA.
+1. Acesse **https://console.anthropic.com**, crie a conta e, em **"Billing"**,
+   adicione um crédito.
+2. Em **"API Keys"** → **"Create Key"**, **copie** a chave (`sk-ant-...`).
+   ⚠️ Ela só aparece uma vez.
+3. No programa, escolha **"Usar chave de API"**, **cole** a chave no campo e
+   deixe **"Guardar para as próximas vezes"** marcado. Analise de novo.
 
-> 🔒 A chave fica **só no seu computador** (num arquivo `.env`). Ela nunca é
-> enviada para o GitHub nem para mim.
+> 🔒 Em ambos os casos, nada disso sai do seu computador. A chave (caminho B)
+> fica num arquivo `.env` local e nunca vai para o GitHub nem para mim.
 
 ---
 

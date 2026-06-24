@@ -25,6 +25,7 @@ from dotenv import load_dotenv
 from flask import Flask, jsonify, render_template, request, send_file
 
 from core import catalogo as cat
+from core import ia as ia_backends
 from core.analise import analisar
 from core.importacao import importar_lista
 from core.relatorio import exportar_excel, exportar_markdown, para_dataframe
@@ -49,17 +50,19 @@ def carregar_config() -> dict:
     return cfg
 
 
-def criar_cliente_ia(usar_ia: bool, chave: str | None = None):
+def criar_cliente_ia(usar_ia: bool, backend: str, chave: str | None, cfg: dict):
+    """Devolve a função perguntar(prompt)->str do backend escolhido, ou None."""
     if not usar_ia:
         return None
+    ia_cfg = cfg.get("ia", {}) or {}
+    if backend == "max":
+        return ia_backends.backend_claude_code(ia_cfg.get("modelo_claude_code"))
+    # backend "api"
     chave = (chave or "").strip() or os.getenv("ANTHROPIC_API_KEY")
     if not chave:
         return None
-    try:
-        from anthropic import Anthropic
-        return Anthropic(api_key=chave)
-    except Exception:
-        return None
+    modelo = ia_cfg.get("modelo", "claude-haiku-4-5-20251001")
+    return ia_backends.backend_api(chave, modelo)
 
 
 # --------------------------------------------------------------------------- #
@@ -71,6 +74,7 @@ def index():
     return render_template(
         "index.html",
         tem_ia=bool(os.getenv("ANTHROPIC_API_KEY")),
+        tem_claude_code=ia_backends.claude_code_disponivel(),
         modo_eleitos=modo_eleitos,
         corte_padrao="2025-07-01",
         escopo=(cfg.get("escopo_pesquisa") or "").strip()[:600],
@@ -93,12 +97,13 @@ def rota_analisar():
             return jsonify({"erro": "Data de corte inválida (use AAAA-MM-DD)."}), 400
 
     cfg = carregar_config()
+    backend = d.get("backend", "max")  # "max" (Claude Code) ou "api"
     chave_ia = (d.get("chave_ia") or "").strip()
-    usar_ia = bool(d.get("usar_ia")) or bool(chave_ia)
-    cliente_ia = criar_cliente_ia(usar_ia, chave_ia)
-    ia_sem_chave = usar_ia and cliente_ia is None
-    # Guarda a chave para as próximas vezes, se o usuário pediu.
-    if d.get("salvar_chave") and chave_ia:
+    usar_ia = bool(d.get("usar_ia")) or bool(chave_ia) or backend == "max"
+    cliente_ia = criar_cliente_ia(usar_ia, backend, chave_ia, cfg)
+    ia_indisponivel = usar_ia and cliente_ia is None
+    # Guarda a chave da API para as próximas vezes, se o usuário pediu.
+    if backend == "api" and d.get("salvar_chave") and chave_ia:
         try:
             Path(".env").write_text(f"ANTHROPIC_API_KEY={chave_ia}\n", encoding="utf-8")
         except Exception:
@@ -130,11 +135,18 @@ def rota_analisar():
     n_ia_erro = sum(1 for l in linhas if "IA indisponível" in str(l.get("Motivo", "")))
 
     avisos = []
-    if ia_sem_chave:
+    if ia_indisponivel and backend == "max":
         avisos.append(
-            "Você marcou usar IA, mas não há chave da API configurada — por isso "
-            f"os {n_duvida} caso(s) em dúvida ficaram para revisão. Crie um arquivo "
-            ".env com ANTHROPIC_API_KEY=sua_chave e analise de novo (ou peça ajuda)."
+            "Você escolheu usar o plano Max (Claude Code), mas o Claude Code não "
+            f"foi encontrado no computador — por isso os {n_duvida} caso(s) em "
+            "dúvida ficaram para revisão. Instale o Claude Code e faça login com "
+            "sua conta Max (Parte 8 do guia)."
+        )
+    elif ia_indisponivel:
+        avisos.append(
+            "Você marcou usar IA por API, mas não há chave configurada — por isso "
+            f"os {n_duvida} caso(s) em dúvida ficaram para revisão. Cole a chave no "
+            "campo 🔑 da tela (Parte 8 do guia)."
         )
     if n_ia_erro:
         avisos.append(f"{n_ia_erro} chamada(s) de IA falharam (verifique a chave/conexão).")
