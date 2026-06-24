@@ -204,6 +204,9 @@ um **custo baixo** (alguns centavos para a biblioteca toda; mínimo de crédito 
 | Problema | O que fazer |
 |---|---|
 | "Python não encontrado" na janela preta | Refaça a Parte 1 e **marque "Add Python to PATH"**. |
+| **`claude` "não é reconhecido"** no PowerShell | **Feche e reabra o PowerShell** (o atalho só vale em janelas novas). Se persistir: confira `npm --version`; reinstale o Node (LTS) e reinicie; ou use o instalador nativo `irm https://claude.ai/install.ps1 \| iex`. |
+| Ao rodar `claude`, ele pede uma **API key** | Você escolheu a opção errada de login. Rode `claude` de novo e selecione a opção da **conta/assinatura (Pro/Max)**, não a de API. |
+| O **app** pede chave mesmo no modo Max | No modo **"Usar meu plano Max"** não é preciso chave. Se o app insiste, o `claude` ainda não está instalado/logado — finalize a Parte 8. Se você nem vê a opção "Usar meu plano Max", **rebaixe o programa** (Parte 2). |
 | O navegador não abriu sozinho | Digite **http://127.0.0.1:5000** na barra do navegador. |
 | "Pasta de livros não encontrada" | Confira se colou o caminho certo (Parte 3). |
 | Um livro fichado aparece como "Não" | Ajuste o **"Rigor do casamento"** ou renomeie o fichamento. |
