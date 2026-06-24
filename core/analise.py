@@ -46,7 +46,8 @@ def analisar(
 
         if livro.erro:
             linhas.append({
-                "Livro": livro.titulo, "Elegível": "Erro", "Método": "-",
+                "Livro": livro.titulo, "Grau": "-", "Elegível": "Erro",
+                "Pastas temáticas": "-", "Método": "-",
                 "Motivo": livro.erro, "Nº Capítulos": 0, "Fichado?": "-",
                 "Fichamento correspondente": "-", "Similaridade": 0,
                 "Formato": livro.formato or "-", "Arquivo": caminho.name,
@@ -63,14 +64,17 @@ def analisar(
             elegivel = cacheado["elegivel"]
             metodo = cacheado["metodo"]
             motivo = cacheado["motivo"]
+            grau = cacheado.get("grau", "")
+            pastas = cacheado.get("pastas", [])
         else:
             res = avaliar(livro, config, cliente_ia, eleitos=eleitos)
             elegivel, metodo, motivo = res.elegivel, res.metodo, res.motivo
+            grau, pastas = res.grau, res.pastas
             # Só guarda no cache quando a IA foi usada (o passo que gasta token).
             if usar_cache_aqui and metodo == "ia":
                 cache.salvar(livro.hash_arquivo, {
                     "elegivel": elegivel, "metodo": metodo, "motivo": motivo,
-                    "titulo": livro.titulo,
+                    "grau": grau, "pastas": pastas, "titulo": livro.titulo,
                 })
 
         # --- Cruzamento com fichamentos (sempre recalculado: é local/barato) ---
@@ -86,7 +90,9 @@ def analisar(
 
         linhas.append({
             "Livro": livro.titulo,
+            "Grau": grau,
             "Elegível": "Sim" if elegivel else "Não",
+            "Pastas temáticas": "; ".join(pastas) if pastas else "—",
             "Método": metodo,
             "Motivo": motivo,
             "Nº Capítulos": livro.num_capitulos,

@@ -159,16 +159,24 @@ if "linhas" in st.session_state:
     c3.metric("Já fichados", int((elegiveis["Fichado?"] == "Sim").sum()))
     c4.metric("Falta fichar", len(nao_fichados))
 
+    if "Grau" in df.columns:
+        with st.expander("📊 Distribuição por grau de incorporação", expanded=True):
+            st.bar_chart(df["Grau"].value_counts())
+
     st.subheader("Resultado")
-    f1, f2 = st.columns(2)
+    f1, f2, f3 = st.columns([1, 1, 2])
     so_elegiveis = f1.checkbox("Só elegíveis", value=True)
     so_nao_fichados = f2.checkbox("Só não fichados", value=False)
+    graus_disp = sorted(g for g in df["Grau"].unique() if g not in ("-", ""))
+    graus_sel = f3.multiselect("Filtrar por grau", graus_disp, default=[])
 
     visao = df.copy()
     if so_elegiveis:
         visao = visao[visao["Elegível"] == "Sim"]
     if so_nao_fichados:
         visao = visao[visao["Fichado?"] == "Não"]
+    if graus_sel:
+        visao = visao[visao["Grau"].isin(graus_sel)]
 
     st.dataframe(visao, use_container_width=True, hide_index=True)
 

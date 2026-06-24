@@ -1,76 +1,282 @@
 # ============================================================================
-#  CRITÉRIOS DE ELEGIBILIDADE — PROJETO RAIP
+#  CRITÉRIOS DE CLASSIFICAÇÃO BIBLIOGRÁFICA — PROJETO RAIP
+#  Regime Ambiental Internacional dos Portos (Tawan Ranny / UniSantos)
 # ============================================================================
-#  Este arquivo define COMO o programa decide se um livro é elegível à
-#  pesquisa. Você (Tawan) preenche aqui os critérios do seu projeto RAIP.
+#  Este arquivo é o "cérebro" do app. Ele NÃO decide só "elegível/não": ele
+#  classifica cada obra por GRAU DE INCORPORAÇÃO e a distribui nas 9 PASTAS
+#  TEMÁTICAS, seguindo as Seções 5 a 7 do documento operacional do RAIP.
 #
-#  Como funciona o esquema híbrido (econômico em tokens):
-#    1) REGRAS  -> conta palavras-chave no título + sumário + início do texto.
+#  Esquema híbrido (econômico em tokens):
+#    1) REGRAS  -> autores centrais + palavras-chave por grau + pastas.
 #                  Custo ZERO de token.
-#    2) DECISÃO -> se a pontuação for ALTA  => elegível
-#                  se a pontuação for BAIXA => não elegível
-#                  se ficar NO MEIO (dúvida) => vai para a IA (passo 3)
-#    3) IA      -> só nos casos em dúvida, e enviando APENAS título + sumário
-#                  (nunca o livro inteiro). O resultado fica em cache.
+#    2) DECISÃO -> grau 1.º / 2.º / 3.º / Irrelevante a partir dos sinais.
+#    3) IA      -> só quando as regras não acham nada (dúvida), enviando
+#                  APENAS título + sumário. O resultado fica em cache.
 # ============================================================================
 
 # ---------------------------------------------------------------------------
-# 0. LISTA DE LIVROS ELEITOS PELO RAIP  (modo mais preciso e SEM tokens)
-#    Se você já tem a lista dos livros escolhidos para a tese (vinda do
-#    projeto RAIP), use-a aqui. Quando preenchida, ela MANDA na decisão:
-#    elegível = está na lista (casamento aproximado por título/nome do arquivo).
-#    Deixe vazio para usar os critérios por palavras-chave (seções 2 a 4).
-#
-#    Opção A) listar os títulos direto aqui:
-lista_livros_eleitos:
-  # - "Sobre a Liberdade — Stuart Mill"
-  # - "Teoria Pura do Direito — Kelsen"
-#
-#    Opção B) apontar um arquivo .txt (um título por linha):
+# 0. LISTA DE LIVROS ELEITOS (opcional). Se preenchida, ela MANDA: a obra é
+#    elegível se estiver na lista (casa por título/nome do arquivo). Útil para
+#    importar os 63 títulos já mapeados. Deixe vazio p/ usar a classificação.
+# ---------------------------------------------------------------------------
+lista_livros_eleitos: []
 arquivo_livros_eleitos: ""   # ex.: "config/livros_eleitos.txt"
 
 # ---------------------------------------------------------------------------
-# 1. DESCRIÇÃO DO ESCOPO DA PESQUISA
-#    Cole aqui, em texto livre, o escopo/critérios do seu projeto RAIP.
-#    Esse texto é usado como instrução para a IA decidir os casos em dúvida.
-#    (Copie do seu projeto no claude.ai e cole abaixo.)
+# 1. ESCOPO DA PESQUISA (usado como instrução para a IA nos casos em dúvida)
 # ---------------------------------------------------------------------------
 escopo_pesquisa: |
-  COLE AQUI a descrição do projeto RAIP: tema central, objetivos, recortes,
-  e o que torna um livro relevante (ou irrelevante) para a pesquisa.
-  Quanto mais claro, melhor a IA decide os casos em dúvida.
+  TÍTULO: Regime Ambiental Internacional dos Portos (RAIP): arquitetura
+  dogmática, fragmentação normativa e governança multinível.
+  Doutorado em Direito Ambiental Internacional (UniSantos).
+
+  TEMA CENTRAL: investigar se é possível construir dogmaticamente, a partir da
+  integração hermenêutica dos regimes ambientais marítimos existentes e da
+  articulação entre instrumentos vinculantes e de orientação técnica em
+  governança multinível, um Regime Ambiental Internacional dos Portos com
+  coerência normativa própria, capaz de superar a fragmentação regulatória e de
+  fundamentar mecanismos de conformidade, resolução de controvérsias e equidade
+  competitiva global. Diagnóstico-chave: o sistema marítimo-ambiental do porto
+  está "saturado em densidade normativa, mas subestruturado em integração
+  dogmática".
+
+  PERGUNTA: como construir dogmaticamente um RAIP que supere as assimetrias
+  regulatórias nacionais e promova a integração normativa global, conciliando
+  sustentabilidade, eficiência operacional e equidade competitiva.
+
+  RECORTE NORMATIVO (os seis regimes): UNCLOS (1982); MARPOL (poluição por
+  navios); Convenção de Água de Lastro (espécies invasoras); OPRC (poluição por
+  óleo); Convenção de Basileia (resíduos perigosos); Acordo BBNJ (biodiversidade
+  além da jurisdição nacional). RECORTE GEOGRÁFICO: portos de Santos, Roterdã,
+  Singapura e Durban (valor heurístico ilustrativo). MÉTODO: dogmático-jurídico
+  e hermenêutico, com função propositiva.
+
+  UMA OBRA É RELEVANTE quando trata de: uma das matrizes teóricas centrais
+  (ver autores abaixo); um dos seis regimes; hermenêutica jurídica aplicada ao
+  Direito Internacional/Ambiental; fragmentação, integração sistêmica, complexo
+  de regimes (art. 31.3.c da Convenção de Viena); governança portuária ambiental
+  com dimensão normativa/institucional; Direito do Mar; jurisdição marítima e
+  controle do Estado do porto. É IRRELEVANTE quando: trata só de Direito
+  Ambiental doméstico sem plano internacional; Direito Internacional sem
+  dimensão ambiental/marítima; economia/logística portuária sem dimensão
+  normativa; metodologia científica geral sem aplicação à pesquisa jurídica;
+  Direito Marítimo privado (afretamento, avaria, seguro) sem interface ambiental.
 
 # ---------------------------------------------------------------------------
-# 2. PALAVRAS-CHAVE QUE INDICAM ELEGIBILIDADE (peso positivo)
-#    Liste termos/temas centrais da pesquisa. Cada acerto soma pontos.
+# 2. AUTORES CENTRAIS (Seção 5.4). Obra de autor central é candidata por si só.
+#    - principais: referência principal/essencial  -> sinal de 1.º GRAU
+#    - complementares: referência de apoio          -> sinal de 2.º GRAU
+#    Casa pelo sobrenome no título/autor/início do texto.
 # ---------------------------------------------------------------------------
-palavras_chave_elegivel:
-  # - exemplo: "inteligência artificial"
-  # - exemplo: "direito"
-  # - exemplo: "metodologia"
+autores_principais:
+  - "Gadamer"
+  - "Ricoeur"
+  - "Luhmann"
+  - "Teubner"
+  - "Fischer-Lescano"
+  - "Krasner"
+  - "Keohane"
+  - "Oran Young"
+  - "Raustiala"
+  - "David Victor"
+  - "Oberthür"
+  - "Gehring"
+  - "Faude"
+  - "Orsini"
+  - "Morin"
+  - "Karen Alter"
+  - "Nye"
+  - "Wendt"
+  - "Finnemore"
+  - "Sikkink"
+  - "Brunnée"
+  - "Toope"
+  - "Lon Fuller"
+  - "Abbott"
+  - "Moravcsik"
+  - "Slaughter"
+  - "Snidal"
+  - "Bosselmann"
+  - "Koskenniemi"
+  - "Chayes"
+  - "Ostrom"
+  - "Douglass North"
+  - "Bodansky"
+  - "Haezendonck"
+  - "Verbeke"
+  - "Pauwelyn"
+  - "Tanaka"
+  - "Freestone"
+  - "Vaughan Lowe"
+  - "MacCormick"
+  - "Alexy"
+  - "Marcelo Lamy"
+  - "Ricardo Maurício Freire Soares"
+
+autores_complementares: []
 
 # ---------------------------------------------------------------------------
-# 3. PALAVRAS-CHAVE QUE INDICAM NÃO-ELEGIBILIDADE (peso negativo)
-#    Termos de livros que NÃO entram na pesquisa (ficção, manuais, etc.).
+# 3. SINAIS DE 1.º GRAU (Relevância Alta — Seção 7.1). Núcleo da tese.
+# ---------------------------------------------------------------------------
+nucleo_primeiro_grau:
+  # os seis regimes
+  - "direito do mar"
+  - "law of the sea"
+  - "unclos"
+  - "convenção das nações unidas sobre o direito do mar"
+  - "marpol"
+  - "poluição por navios"
+  - "água de lastro"
+  - "ballast water"
+  - "espécies invasoras"
+  - "poluição por óleo"
+  - "oprc"
+  - "resíduos perigosos"
+  - "basileia"
+  - "basel convention"
+  - "biodiversidade marinha"
+  - "bbnj"
+  - "áreas além da jurisdição nacional"
+  - "areas beyond national jurisdiction"
+  # conceitos-núcleo
+  - "hermenêutica"
+  - "fragmentação"
+  - "fragmentation"
+  - "integração sistêmica"
+  - "systemic integration"
+  - "complexo de regimes"
+  - "regime complex"
+  - "governança portuária"
+  - "jurisdição marítima"
+  - "controle do estado do porto"
+  - "port state control"
+  - "estado do porto"
+  - "direito ambiental internacional"
+  - "convenção de viena sobre o direito dos tratados"
+
+# ---------------------------------------------------------------------------
+# 4. SINAIS DE 2.º GRAU (Relevância Média — Seção 7.2). Apoio/periferia útil.
+# ---------------------------------------------------------------------------
+sinais_segundo_grau:
+  - "compliance ambiental"
+  - "compliance"
+  - "resolução de controvérsias"
+  - "equidade competitiva"
+  - "objetivos de desenvolvimento sustentável"
+  - "desenvolvimento sustentável"
+  - "ods 13"
+  - "ods 14"
+  - "ods 9"
+  - "ods 11"
+  - "ods 17"
+  - "economia portuária"
+  - "logística portuária"
+  - "gestão portuária"
+  - "descarbonização"
+  - "análise comparada"
+  - "sistemas portuários"
+
+# ---------------------------------------------------------------------------
+# 5. SINAIS DE IRRELEVÂNCIA (Seção 7.4). Só excluem se NÃO houver sinal positivo.
 # ---------------------------------------------------------------------------
 palavras_chave_excluir:
-  # - exemplo: "romance"
-  # - exemplo: "autoajuda"
+  - "afretamento"
+  - "avaria grossa"
+  - "seguro marítimo"
+  - "direito marítimo privado"
+  - "romance"
+  - "ficção"
+  - "autoajuda"
+  - "poesia"
 
 # ---------------------------------------------------------------------------
-# 4. LIMIARES DE DECISÃO (pontuação por regras)
-#    - pontos >= limiar_elegivel        => ELEGÍVEL  (sem IA)
-#    - pontos <= limiar_nao_elegivel    => NÃO       (sem IA)
-#    - entre os dois                    => DÚVIDA -> IA
+# 6. PASTAS TEMÁTICAS (Seção 6). Uma obra pode cair em várias. Cada pasta é
+#    marcada quando algum de seus termos aparece no título/sumário/início.
 # ---------------------------------------------------------------------------
-limiar_elegivel: 2
-limiar_nao_elegivel: 0
+pastas_tematicas:
+  "1 - Hermenêutica e Metodologia Jurídica":
+    - "hermenêutica"
+    - "interpretação"
+    - "metodologia jurídica"
+    - "argumentação jurídica"
+    - "gadamer"
+    - "ricoeur"
+    - "lamy"
+    - "alexy"
+    - "maccormick"
+  "2 - Teoria dos Sistemas e Filosofia do Direito":
+    - "teoria dos sistemas"
+    - "autopoiese"
+    - "autopoiético"
+    - "luhmann"
+    - "teubner"
+    - "fischer-lescano"
+    - "filosofia do direito"
+  "3 - Teoria dos Regimes, Construtivismo e Teoria Crítica":
+    - "teoria dos regimes"
+    - "regime internacional"
+    - "construtivismo"
+    - "wendt"
+    - "finnemore"
+    - "sikkink"
+    - "krasner"
+    - "keohane"
+    - "koskenniemi"
+    - "teoria crítica"
+  "4 - Complexo de Regimes, Fragmentação e Integração Normativa":
+    - "complexo de regimes"
+    - "regime complex"
+    - "fragmentação"
+    - "integração sistêmica"
+    - "integração normativa"
+    - "raustiala"
+    - "victor"
+    - "oberthür"
+    - "gehring"
+    - "pauwelyn"
+  "5 - Governança Internacional, Compliance e Institucionalismo":
+    - "governança"
+    - "compliance"
+    - "institucionalismo"
+    - "instituições"
+    - "legalização"
+    - "ostrom"
+    - "north"
+    - "chayes"
+    - "abbott"
+  "6 - Direito Ambiental Internacional e Sustentabilidade":
+    - "direito ambiental internacional"
+    - "sustentabilidade"
+    - "desenvolvimento sustentável"
+    - "bosselmann"
+    - "meio ambiente"
+    - "objetivos de desenvolvimento sustentável"
+  "7 - Direito do Mar":
+    - "direito do mar"
+    - "law of the sea"
+    - "unclos"
+    - "oceanos"
+    - "tanaka"
+    - "freestone"
+    - "lowe"
+  "8 - Jurisdição Marítima e Controle do Estado do Porto":
+    - "jurisdição marítima"
+    - "estado do porto"
+    - "port state control"
+    - "controle do estado do porto"
+  "9 - Economia, Gestão e Descarbonização Portuária":
+    - "porto"
+    - "portuária"
+    - "portuário"
+    - "descarbonização"
+    - "logística"
+    - "gestão portuária"
+    - "haezendonck"
+    - "verbeke"
 
 # ---------------------------------------------------------------------------
-# 5. CONFIGURAÇÃO DA IA (usada só nos casos em dúvida)
+# 7. CONFIGURAÇÃO DA IA (usada só quando as regras não acham nenhum sinal)
 # ---------------------------------------------------------------------------
 ia:
-  # Modelo barato e rápido, suficiente para classificar a partir do sumário.
   modelo: "claude-haiku-4-5-20251001"
-  # Nº máximo de caracteres do sumário enviados à IA (controla o token).
   max_caracteres_contexto: 4000

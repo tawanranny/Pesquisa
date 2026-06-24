@@ -6,8 +6,9 @@ import io
 import pandas as pd
 
 COLUNAS = [
-    "Livro", "Elegível", "Método", "Motivo", "Nº Capítulos",
-    "Fichado?", "Fichamento correspondente", "Similaridade", "Formato", "Arquivo",
+    "Livro", "Grau", "Elegível", "Pastas temáticas", "Método", "Motivo",
+    "Nº Capítulos", "Fichado?", "Fichamento correspondente", "Similaridade",
+    "Formato", "Arquivo",
 ]
 
 
@@ -35,6 +36,12 @@ def exportar_markdown(df: pd.DataFrame, detalhes_capitulos: dict[str, list]) -> 
     linhas.append(f"- Elegíveis: **{len(elegiveis)}**")
     linhas.append(f"- Elegíveis ainda **não fichados**: **{len(nao_fichados)}**\n")
 
+    if "Grau" in df.columns:
+        linhas.append("### Distribuição por grau de incorporação\n")
+        for grau, n in df["Grau"].value_counts().items():
+            linhas.append(f"- {grau}: **{n}**")
+        linhas.append("")
+
     if len(nao_fichados):
         linhas.append("## ⚠️ Elegíveis ainda NÃO fichados\n")
         for _, r in nao_fichados.iterrows():
@@ -45,6 +52,9 @@ def exportar_markdown(df: pd.DataFrame, detalhes_capitulos: dict[str, list]) -> 
     for _, r in elegiveis.iterrows():
         marca = "✅" if r["Fichado?"] == "Sim" else "❌"
         linhas.append(f"### {marca} {r['Livro']}")
+        grau = r.get("Grau", "")
+        pastas = r.get("Pastas temáticas", "")
+        linhas.append(f"*Grau:* {grau} — *Pastas:* {pastas}")
         linhas.append(f"*Fichado:* {r['Fichado?']} — *Motivo:* {r['Motivo']}")
         caps = detalhes_capitulos.get(r["Arquivo"], [])
         if caps:
