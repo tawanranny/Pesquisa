@@ -1,0 +1,23 @@
+# Ambiente Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+
+# Chaves e segredos (NUNCA versionar a chave da API)
+.env
+*.key
+
+# Cache da análise (gerado pelo app)
+.cache_pesquisa/
+cache_pesquisa.json
+
+# Saídas/relatórios gerados
+saidas/
+*.xlsx
+*.md.bak
+
+# Sistema
+.DS_Store
+Thumbs.db

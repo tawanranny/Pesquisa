@@ -1,0 +1,61 @@
+# ============================================================================
+#  CRITÉRIOS DE ELEGIBILIDADE — PROJETO RAIP
+# ============================================================================
+#  Este arquivo define COMO o programa decide se um livro é elegível à
+#  pesquisa. Você (Tawan) preenche aqui os critérios do seu projeto RAIP.
+#
+#  Como funciona o esquema híbrido (econômico em tokens):
+#    1) REGRAS  -> conta palavras-chave no título + sumário + início do texto.
+#                  Custo ZERO de token.
+#    2) DECISÃO -> se a pontuação for ALTA  => elegível
+#                  se a pontuação for BAIXA => não elegível
+#                  se ficar NO MEIO (dúvida) => vai para a IA (passo 3)
+#    3) IA      -> só nos casos em dúvida, e enviando APENAS título + sumário
+#                  (nunca o livro inteiro). O resultado fica em cache.
+# ============================================================================
+
+# ---------------------------------------------------------------------------
+# 1. DESCRIÇÃO DO ESCOPO DA PESQUISA
+#    Cole aqui, em texto livre, o escopo/critérios do seu projeto RAIP.
+#    Esse texto é usado como instrução para a IA decidir os casos em dúvida.
+#    (Copie do seu projeto no claude.ai e cole abaixo.)
+# ---------------------------------------------------------------------------
+escopo_pesquisa: |
+  COLE AQUI a descrição do projeto RAIP: tema central, objetivos, recortes,
+  e o que torna um livro relevante (ou irrelevante) para a pesquisa.
+  Quanto mais claro, melhor a IA decide os casos em dúvida.
+
+# ---------------------------------------------------------------------------
+# 2. PALAVRAS-CHAVE QUE INDICAM ELEGIBILIDADE (peso positivo)
+#    Liste termos/temas centrais da pesquisa. Cada acerto soma pontos.
+# ---------------------------------------------------------------------------
+palavras_chave_elegivel:
+  # - exemplo: "inteligência artificial"
+  # - exemplo: "direito"
+  # - exemplo: "metodologia"
+
+# ---------------------------------------------------------------------------
+# 3. PALAVRAS-CHAVE QUE INDICAM NÃO-ELEGIBILIDADE (peso negativo)
+#    Termos de livros que NÃO entram na pesquisa (ficção, manuais, etc.).
+# ---------------------------------------------------------------------------
+palavras_chave_excluir:
+  # - exemplo: "romance"
+  # - exemplo: "autoajuda"
+
+# ---------------------------------------------------------------------------
+# 4. LIMIARES DE DECISÃO (pontuação por regras)
+#    - pontos >= limiar_elegivel        => ELEGÍVEL  (sem IA)
+#    - pontos <= limiar_nao_elegivel    => NÃO       (sem IA)
+#    - entre os dois                    => DÚVIDA -> IA
+# ---------------------------------------------------------------------------
+limiar_elegivel: 2
+limiar_nao_elegivel: 0
+
+# ---------------------------------------------------------------------------
+# 5. CONFIGURAÇÃO DA IA (usada só nos casos em dúvida)
+# ---------------------------------------------------------------------------
+ia:
+  # Modelo barato e rápido, suficiente para classificar a partir do sumário.
+  modelo: "claude-haiku-4-5-20251001"
+  # Nº máximo de caracteres do sumário enviados à IA (controla o token).
+  max_caracteres_contexto: 4000
