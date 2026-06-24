@@ -36,12 +36,18 @@ st.caption(
 )
 
 CAMINHO_CONFIG = Path("config/criterios_raip.yaml")
+CAMINHO_ELEITOS = Path("config/livros_eleitos.txt")
 
 
 def carregar_config() -> dict:
+    cfg = {}
     if CAMINHO_CONFIG.exists():
-        return yaml.safe_load(CAMINHO_CONFIG.read_text(encoding="utf-8")) or {}
-    return {}
+        cfg = yaml.safe_load(CAMINHO_CONFIG.read_text(encoding="utf-8")) or {}
+    # Se a lista de eleitos foi importada para o .txt e o YAML não aponta para
+    # nenhum arquivo, usa-a automaticamente.
+    if not cfg.get("arquivo_livros_eleitos") and CAMINHO_ELEITOS.exists():
+        cfg["arquivo_livros_eleitos"] = str(CAMINHO_ELEITOS)
+    return cfg
 
 
 def criar_cliente_ia(usar_ia: bool):
@@ -91,6 +97,28 @@ usar_cache = st.sidebar.checkbox(
 if st.sidebar.button("🗑️ Limpar cache"):
     Cache().limpar()
     st.sidebar.success("Cache limpo.")
+
+with st.sidebar.expander("📥 Importar lista mapeada (63 títulos)"):
+    st.caption(
+        "Cole a lista do RAIP (tabela, ou um título por linha; pode ter colunas "
+        "Grau/Pasta). Use para o modo 'livros eleitos' e como catálogo inicial."
+    )
+    texto_import = st.text_area("Lista de títulos", height=160, key="txt_import")
+    if texto_import.strip():
+        from core.importacao import importar_lista
+        regs, titulos = importar_lista(texto_import)
+        st.write(f"**{len(titulos)}** título(s) reconhecido(s).")
+        b1, b2 = st.columns(2)
+        if b1.button("📌 Usar como eleitos"):
+            CAMINHO_ELEITOS.parent.mkdir(parents=True, exist_ok=True)
+            CAMINHO_ELEITOS.write_text("\n".join(titulos), encoding="utf-8")
+            st.success(f"Salvo em {CAMINHO_ELEITOS}. Reanalise a biblioteca.")
+        import pandas as _pd
+        seed = _pd.DataFrame(regs, columns=cat.COLUNAS)
+        b2.download_button(
+            "⬇️ Catálogo inicial", data=cat.para_csv_bytes(seed),
+            file_name="catalogo_raip.csv", mime="text/csv",
+        )
 
 with st.sidebar.expander("📋 Critérios RAIP (resumo)"):
     cfg_preview = carregar_config()
