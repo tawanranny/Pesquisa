@@ -29,7 +29,8 @@ st.set_page_config(page_title="Pesquisa RAIP", page_icon="📚", layout="wide")
 st.title("📚 Organizador de Pesquisa — Projeto RAIP")
 st.caption(
     "Detecta livros elegíveis, organiza por capítulos e mostra o que ainda "
-    "falta fichar. Livros e fichamentos em .docx, lidos da pasta do OneDrive."
+    "falta fichar. Lê .docx e PDF (com texto ou escaneado via OCR) "
+    "da pasta do OneDrive sincronizada."
 )
 
 CAMINHO_CONFIG = Path("config/criterios_raip.yaml")
@@ -91,12 +92,20 @@ if st.sidebar.button("🗑️ Limpar cache"):
 
 with st.sidebar.expander("📋 Critérios RAIP (resumo)"):
     cfg_preview = carregar_config()
-    escopo = (cfg_preview.get("escopo_pesquisa") or "").strip()
-    st.write("**Escopo:**", escopo[:300] or "_(não preenchido)_")
-    st.write("**Palavras-chave elegível:**",
-             cfg_preview.get("palavras_chave_elegivel") or "_(vazio)_")
-    st.write("**Palavras-chave excluir:**",
-             cfg_preview.get("palavras_chave_excluir") or "_(vazio)_")
+    eleitos_prev = cfg_preview.get("lista_livros_eleitos") or []
+    arq_eleitos = cfg_preview.get("arquivo_livros_eleitos") or ""
+    if eleitos_prev or arq_eleitos:
+        st.success(f"Modo LISTA DE ELEITOS ativo "
+                   f"({len(eleitos_prev)} título(s){' + arquivo' if arq_eleitos else ''}).")
+        st.caption("Elegível = está na lista do RAIP.")
+    else:
+        st.info("Modo PALAVRAS-CHAVE (sem lista de eleitos).")
+        escopo = (cfg_preview.get("escopo_pesquisa") or "").strip()
+        st.write("**Escopo:**", escopo[:300] or "_(não preenchido)_")
+        st.write("**Palavras-chave elegível:**",
+                 cfg_preview.get("palavras_chave_elegivel") or "_(vazio)_")
+        st.write("**Palavras-chave excluir:**",
+                 cfg_preview.get("palavras_chave_excluir") or "_(vazio)_")
     st.caption("Edite em config/criterios_raip.yaml")
 
 

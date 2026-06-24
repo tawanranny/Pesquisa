@@ -13,7 +13,7 @@ from pathlib import Path
 
 from rapidfuzz import fuzz, process
 
-from .leitura_docx import listar_docx
+from .leitura import listar_livros
 
 # Termos comuns em nomes de fichamento que atrapalham o casamento.
 _RUIDO = [
@@ -41,7 +41,7 @@ class Fichamento:
 
 def carregar_fichamentos(pasta: Path) -> list[Fichamento]:
     fichas: list[Fichamento] = []
-    for caminho in listar_docx(pasta):
+    for caminho in listar_livros(pasta):
         fichas.append(
             Fichamento(
                 caminho=caminho,

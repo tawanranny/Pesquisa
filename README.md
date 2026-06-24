@@ -1,7 +1,8 @@
 # 📚 Organizador de Pesquisa — Projeto RAIP
 
 App com interface (Streamlit) que lê seus **livros** e **fichamentos** em `.docx`
-(direto da pasta do **OneDrive sincronizada** no seu computador) e:
+e **PDF** (com texto ou escaneado via OCR), direto da pasta do **OneDrive
+sincronizada** no seu computador, e:
 
 1. **Detecta os livros elegíveis** à pesquisa, segundo os critérios do projeto RAIP;
 2. **Organiza cada livro por capítulos** (lidos pelos estilos de título do Word — sem gastar tokens);
@@ -25,16 +26,35 @@ Requer **Python 3.10+**. No terminal, dentro desta pasta:
 pip install -r requirements.txt
 ```
 
-## 2. Preencher os critérios do RAIP
+## 2. Definir a elegibilidade (RAIP)
 
-Abra **`config/criterios_raip.yaml`** e preencha:
+Abra **`config/criterios_raip.yaml`**. Há dois modos:
 
-- `escopo_pesquisa`: cole a descrição do seu projeto RAIP (copie do claude.ai e cole aqui).
-- `palavras_chave_elegivel`: termos centrais da pesquisa (cada acerto soma ponto).
-- `palavras_chave_excluir`: termos de livros que **não** entram (ficção, etc.).
+**Modo A — Lista de eleitos (recomendado, mais preciso, ZERO token).**
+O projeto RAIP já elege os livros da tese. Cole essa lista em `lista_livros_eleitos`
+(ou aponte um `.txt` em `arquivo_livros_eleitos`). O app marca como elegível quem está
+na lista (casamento aproximado por título/nome de arquivo) — funciona até para PDF escaneado,
+pois compara pelo nome.
 
-> Esse arquivo é o "cérebro" da elegibilidade — quanto mais completo, melhor o resultado
-> e menos casos precisam ir para a IA.
+**Modo B — Palavras-chave (quando não há lista pronta).**
+Deixe a lista vazia e preencha:
+- `escopo_pesquisa`: descrição do projeto RAIP (para a IA decidir dúvidas);
+- `palavras_chave_elegivel`: termos centrais (cada acerto soma ponto);
+- `palavras_chave_excluir`: termos de livros que **não** entram.
+
+> Tendo a lista de eleitos do RAIP, use o Modo A: é o mais fiel à sua curadoria.
+
+## 2.1 PDFs escaneados (OCR)
+
+PDFs **com texto** são lidos direto (capítulos vêm do sumário/marcadores do PDF).
+PDFs **escaneados** (imagens) precisam de OCR local para ter o conteúdo lido:
+
+1. `pip install pytesseract pdf2image` (já estão no requirements);
+2. Instale os programas do sistema **Tesseract** (com português) e **Poppler**:
+   - Windows: Tesseract — <https://github.com/UB-Mannheim/tesseract/wiki>; Poppler — `poppler-windows`.
+
+Sem OCR, o PDF escaneado aparece como **`pdf-sem-texto`** — ainda é avaliado pelo
+título (modo lista) e pelos marcadores, mas o conteúdo não é lido.
 
 ## 3. (Opcional) Ligar a IA — chave da Anthropic
 
@@ -75,8 +95,11 @@ Você verá:
 app.py                      # interface Streamlit
 config/criterios_raip.yaml  # critérios de elegibilidade (você preenche)
 core/
+  modelos.py                # estruturas de dados compartilhadas
+  leitura.py                # despachante: escolhe leitor por extensão
   leitura_docx.py           # lê .docx, capítulos por estilos de título
-  elegibilidade.py          # regras + camada de IA (casos em dúvida)
+  leitura_pdf.py            # lê PDF (texto + OCR), capítulos pelos marcadores
+  elegibilidade.py          # lista de eleitos + regras + IA (casos em dúvida)
   fichamentos.py            # cruzamento livro ↔ fichamento (nome aproximado)
   cache.py                  # cache por hash (economiza tokens)
   analise.py                # orquestra tudo
@@ -92,4 +115,7 @@ requirements.txt
 - **Meus capítulos não aparecem.** O app detecta capítulos pelos **estilos de título** do Word
   (Título 1, Título 2...). Se o documento usa texto em negrito "na mão" em vez de estilos,
   os capítulos não são detectados — aplicar os estilos resolve.
-- **Os livros não são .docx (são PDF/EPUB).** Dá para adicionar suporte; me avise.
+- **Tenho EPUB/MOBI também.** Hoje o app lê `.docx` e PDF. Suporte a EPUB/MOBI dá para adicionar; me avise.
+- **Quero acessar o OneDrive sem sincronizar (via nuvem).** É possível usar a API Microsoft Graph
+  (conta pessoal). Como exige registrar um app no Azure e autenticar, o caminho padrão aqui é a
+  pasta sincronizada (mais simples). Me avise se preferir o acesso via nuvem.

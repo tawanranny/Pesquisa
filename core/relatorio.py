@@ -7,7 +7,7 @@ import pandas as pd
 
 COLUNAS = [
     "Livro", "Elegível", "Método", "Motivo", "Nº Capítulos",
-    "Fichado?", "Fichamento correspondente", "Similaridade", "Arquivo",
+    "Fichado?", "Fichamento correspondente", "Similaridade", "Formato", "Arquivo",
 ]
 
 

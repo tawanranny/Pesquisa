@@ -15,6 +15,21 @@
 # ============================================================================
 
 # ---------------------------------------------------------------------------
+# 0. LISTA DE LIVROS ELEITOS PELO RAIP  (modo mais preciso e SEM tokens)
+#    Se você já tem a lista dos livros escolhidos para a tese (vinda do
+#    projeto RAIP), use-a aqui. Quando preenchida, ela MANDA na decisão:
+#    elegível = está na lista (casamento aproximado por título/nome do arquivo).
+#    Deixe vazio para usar os critérios por palavras-chave (seções 2 a 4).
+#
+#    Opção A) listar os títulos direto aqui:
+lista_livros_eleitos:
+  # - "Sobre a Liberdade — Stuart Mill"
+  # - "Teoria Pura do Direito — Kelsen"
+#
+#    Opção B) apontar um arquivo .txt (um título por linha):
+arquivo_livros_eleitos: ""   # ex.: "config/livros_eleitos.txt"
+
+# ---------------------------------------------------------------------------
 # 1. DESCRIÇÃO DO ESCOPO DA PESQUISA
 #    Cole aqui, em texto livre, o escopo/critérios do seu projeto RAIP.
 #    Esse texto é usado como instrução para a IA decidir os casos em dúvida.

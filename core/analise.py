@@ -8,9 +8,9 @@ from pathlib import Path
 from typing import Callable
 
 from .cache import Cache
-from .elegibilidade import avaliar
+from .elegibilidade import avaliar, carregar_eleitos
 from .fichamentos import carregar_fichamentos, encontrar_fichamento
-from .leitura_docx import listar_docx, ler_livro
+from .leitura import listar_livros, ler_livro
 
 
 def analisar(
@@ -28,7 +28,8 @@ def analisar(
     """
     cache = Cache()
     fichamentos = carregar_fichamentos(pasta_fichamentos)
-    arquivos = listar_docx(pasta_livros)
+    eleitos = carregar_eleitos(config)
+    arquivos = listar_livros(pasta_livros)
     total = len(arquivos)
 
     linhas: list[dict] = []
@@ -48,23 +49,29 @@ def analisar(
                 "Livro": livro.titulo, "Elegível": "Erro", "Método": "-",
                 "Motivo": livro.erro, "Nº Capítulos": 0, "Fichado?": "-",
                 "Fichamento correspondente": "-", "Similaridade": 0,
-                "Arquivo": caminho.name,
+                "Formato": livro.formato or "-", "Arquivo": caminho.name,
             })
             continue
 
-        # --- Elegibilidade (com cache por hash) ---
-        cacheado = cache.obter(livro.hash_arquivo) if usar_cache else None
+        # --- Elegibilidade ---
+        # O cache só vale a pena para o passo caro (IA). Com lista de eleitos ou
+        # só regras o custo é zero, então recalculamos (evita resultado velho se
+        # a lista/critérios mudarem).
+        usar_cache_aqui = usar_cache and eleitos == []
+        cacheado = cache.obter(livro.hash_arquivo) if usar_cache_aqui else None
         if cacheado:
             elegivel = cacheado["elegivel"]
             metodo = cacheado["metodo"]
             motivo = cacheado["motivo"]
         else:
-            res = avaliar(livro, config, cliente_ia)
+            res = avaliar(livro, config, cliente_ia, eleitos=eleitos)
             elegivel, metodo, motivo = res.elegivel, res.metodo, res.motivo
-            cache.salvar(livro.hash_arquivo, {
-                "elegivel": elegivel, "metodo": metodo, "motivo": motivo,
-                "titulo": livro.titulo,
-            })
+            # Só guarda no cache quando a IA foi usada (o passo que gasta token).
+            if usar_cache_aqui and metodo == "ia":
+                cache.salvar(livro.hash_arquivo, {
+                    "elegivel": elegivel, "metodo": metodo, "motivo": motivo,
+                    "titulo": livro.titulo,
+                })
 
         # --- Cruzamento com fichamentos (sempre recalculado: é local/barato) ---
         if elegivel:
@@ -86,6 +93,7 @@ def analisar(
             "Fichado?": fichado,
             "Fichamento correspondente": ficha,
             "Similaridade": sim,
+            "Formato": livro.formato,
             "Arquivo": caminho.name,
         })
 
