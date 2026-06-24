@@ -181,7 +181,14 @@ def avaliar(livro, config, cliente_ia=None, eleitos=None):
 
     # Zona de dúvida: sem nenhum sinal de regra.
     if cliente_ia is None:
-        res.motivo = "DÚVIDA (revisar manualmente) — " + res.motivo
+        sem_texto = (livro.formato == "pdf-sem-texto"
+                     or len((livro.inicio_texto or "").strip()) < 40)
+        if sem_texto:
+            res.motivo = ("Sem texto legível (PDF escaneado sem OCR): só o título "
+                          "foi analisado. Instale o OCR ou ligue a IA para decidir.")
+        else:
+            res.motivo = ("Nenhuma palavra-chave/autor reconhecido no título e no "
+                          "início do texto. Ligue a IA para decidir automaticamente.")
         res.elegivel = True  # conservador: deixa para revisão
         return res
     return _avaliar_com_ia(livro, config, cliente_ia, res.pastas)

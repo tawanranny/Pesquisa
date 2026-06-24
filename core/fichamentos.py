@@ -32,6 +32,21 @@ def _normalizar(txt: str) -> str:
     return re.sub(r"\s+", " ", txt).strip()
 
 
+def _titulo_principal(txt: str) -> str:
+    """Parte antes do subtítulo/autores: corta em ':' '–' '—' ou ' - '."""
+    txt = re.split(r"\s[-–—:]\s|[:–—]", txt, maxsplit=1)[0]
+    return txt
+
+
+def _variantes(titulo: str, nome_arquivo: str) -> set[str]:
+    """Alvos de comparação: título e nome do arquivo, completos e só a parte
+    principal (sem subtítulo). Cobre o caso de fichamentos que começam pelo
+    autor e livros com subtítulo longo."""
+    brutos = [titulo, _titulo_principal(titulo),
+              Path(nome_arquivo).stem, _titulo_principal(Path(nome_arquivo).stem)]
+    return {v for v in (_normalizar(b) for b in brutos) if len(v) >= 4}
+
+
 @dataclass
 class Fichamento:
     caminho: Path
@@ -74,11 +89,11 @@ def encontrar_fichamento(
     melhor_sim = 0
     melhor_ficha: Fichamento | None = None
 
-    for alvo in {_normalizar(titulo_livro), _normalizar(Path(nome_arquivo_livro).stem)}:
-        if not alvo:
-            continue
+    # token_set_ratio foca na parte EM COMUM (ignora autor/subtítulo extras);
+    # comparamos cada variante do livro contra cada fichamento.
+    for alvo in _variantes(titulo_livro, nome_arquivo_livro):
         achado = process.extractOne(
-            alvo, list(chaves.keys()), scorer=fuzz.token_sort_ratio
+            alvo, list(chaves.keys()), scorer=fuzz.token_set_ratio
         )
         if achado and achado[1] > melhor_sim:
             melhor_sim = int(achado[1])

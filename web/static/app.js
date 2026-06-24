@@ -41,6 +41,7 @@ async function analisar() {
       usar_cache: $("usar_cache").checked,
     });
     LINHAS = j.linhas; DETALHES = j.detalhes;
+    mostrarAvisos(j.avisos || []);
     mostrarResumo(j.resumo);
     montarFiltroGraus(j.resumo.graus);
     renderTabela();
@@ -55,11 +56,20 @@ async function analisar() {
   }
 }
 
+function mostrarAvisos(avisos) {
+  const box = $("avisos");
+  if (!avisos.length) { box.classList.add("oculto"); box.innerHTML = ""; return; }
+  box.innerHTML = avisos.map((a) => `<div class="aviso">⚠️ ${esc(a)}</div>`).join("");
+  box.classList.remove("oculto");
+}
+
 function mostrarResumo(r) {
   $("m-total").textContent = r.total;
   $("m-eleg").textContent = r.elegiveis;
   $("m-fich").textContent = r.fichados;
   $("m-falta").textContent = r.falta_fichar;
+  $("m-duvida").textContent = r.duvidas != null ? r.duvidas : 0;
+  $("m-ia").textContent = r.ia_usada != null ? r.ia_usada : 0;
   const cores = { "1": "var(--g1)", "2": "var(--g2)", "3": "var(--g3)" };
   const barra = $("graus-barra"); barra.innerHTML = "";
   Object.entries(r.graus).sort().forEach(([g, n]) => {

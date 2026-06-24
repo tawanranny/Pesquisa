@@ -52,7 +52,10 @@ button:hover, .botao:hover { background: #f0f4f8; }
 .pill { padding: 3px 12px; border-radius: 20px; font-size: .8rem; font-weight: 600; }
 .pill.ok { background: #d8f3ee; color: var(--acento); }
 
-.metricas { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.avisos { display: flex; flex-direction: column; gap: 8px; }
+.aviso { background: #fff4e5; border: 1px solid #f0c987; color: #8a5a00; padding: 12px 16px; border-radius: 11px; font-size: .92rem; }
+
+.metricas { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 14px; }
 .metrica { background: var(--fundo); border-radius: 11px; padding: 16px; text-align: center; }
 .metrica span { display: block; font-size: 1.9rem; font-weight: 700; color: var(--azul); }
 .metrica label { justify-content: center; color: var(--suave); font-weight: 500; }

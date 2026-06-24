@@ -93,7 +93,9 @@ def rota_analisar():
             return jsonify({"erro": "Data de corte inválida (use AAAA-MM-DD)."}), 400
 
     cfg = carregar_config()
-    cliente_ia = criar_cliente_ia(bool(d.get("usar_ia")))
+    usar_ia = bool(d.get("usar_ia"))
+    cliente_ia = criar_cliente_ia(usar_ia)
+    ia_sem_chave = usar_ia and cliente_ia is None
     try:
         linhas, detalhes = analisar(
             pasta_livros, pasta_fichamentos, cfg,
@@ -114,15 +116,41 @@ def rota_analisar():
     for l in linhas:
         graus[l.get("Grau", "")] = graus.get(l.get("Grau", ""), 0) + 1
 
+    # Diagnóstico das dúvidas e da IA.
+    n_duvida = sum(1 for l in linhas if str(l.get("Grau", "")).startswith("Dúvida"))
+    n_sem_texto = sum(1 for l in linhas if l.get("Formato") == "pdf-sem-texto")
+    n_ia = sum(1 for l in linhas if l.get("Método") == "ia")
+    n_ia_erro = sum(1 for l in linhas if "IA indisponível" in str(l.get("Motivo", "")))
+
+    avisos = []
+    if ia_sem_chave:
+        avisos.append(
+            "Você marcou usar IA, mas não há chave da API configurada — por isso "
+            f"os {n_duvida} caso(s) em dúvida ficaram para revisão. Crie um arquivo "
+            ".env com ANTHROPIC_API_KEY=sua_chave e analise de novo (ou peça ajuda)."
+        )
+    if n_ia_erro:
+        avisos.append(f"{n_ia_erro} chamada(s) de IA falharam (verifique a chave/conexão).")
+    if n_sem_texto:
+        avisos.append(
+            f"{n_sem_texto} livro(s) são PDF escaneado SEM OCR: só o título foi lido. "
+            "Instale o OCR (Parte 7 do guia) para ler o conteúdo desses."
+        )
+
     return jsonify({
         "linhas": linhas,
         "detalhes": detalhes,
+        "avisos": avisos,
         "resumo": {
             "total": len(linhas),
             "elegiveis": len(elegiveis),
             "fichados": sum(1 for l in elegiveis if l.get("Fichado?") == "Sim"),
             "falta_fichar": len(falta),
             "graus": graus,
+            "duvidas": n_duvida,
+            "sem_texto": n_sem_texto,
+            "ia_usada": n_ia,
+            "ia_ativa": cliente_ia is not None,
         },
     })
 
