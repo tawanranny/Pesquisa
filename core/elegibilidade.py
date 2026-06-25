@@ -10,6 +10,7 @@ documento operacional. Esquema híbrido econômico:
 """
 from __future__ import annotations
 
+import re
 import unicodedata
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -192,6 +193,80 @@ def avaliar(livro, config, cliente_ia=None, eleitos=None):
         res.elegivel = True  # conservador: deixa para revisão
         return res
     return _avaliar_com_ia(livro, config, cliente_ia, res.pastas)
+
+
+def _mapa_pastas(config) -> dict[str, str]:
+    """Número da pasta -> nome completo (ex.: '7' -> '7 - Direito do Mar')."""
+    mapa = {}
+    for nome in (config.get("pastas_tematicas") or {}):
+        num = str(nome).strip().split(" ", 1)[0].strip(" -.")
+        if num:
+            mapa[num] = nome
+    return mapa
+
+
+def _grau_de_rotulo(rotulo: str):
+    r = (rotulo or "").strip().upper()
+    if "IRREL" in r:
+        return IRRELEVANTE, False
+    if r.startswith("1"):
+        return GRAU_1, True
+    if r.startswith("2"):
+        return GRAU_2, True
+    if r.startswith("3"):
+        return GRAU_3, True
+    return GRAU_DUVIDA, True
+
+
+def classificar_ia_completo(livro, config, cliente_ia):
+    """Manda a IA LER o livro inteiro e julgá-lo frente ao escopo do projeto.
+    Decide grau de incorporação, pastas temáticas e justificativa."""
+    ia_cfg = config.get("ia", {}) or {}
+    max_chars = int(ia_cfg.get("max_caracteres_livro", 200000))
+    escopo = (config.get("escopo_pesquisa") or "").strip()
+    mapa = _mapa_pastas(config)
+    pastas_lista = "\n".join(f"  {n}: {nome.split(' - ', 1)[-1]}"
+                             for n, nome in mapa.items())
+
+    texto = (livro.texto_completo or livro.inicio_texto or "").strip()[:max_chars]
+    if not texto:
+        texto = "(sem texto legível — avalie apenas pelo título)"
+
+    prompt = (
+        "Você é um assistente de pesquisa acadêmica em Direito Ambiental "
+        "Internacional. Leia o CONTEÚDO DO LIVRO abaixo e avalie, com critério, "
+        "se e quanto ele serve à pesquisa, segundo o ESCOPO E CRITÉRIOS.\n\n"
+        f"=== ESCOPO E CRITÉRIOS DO PROJETO ===\n{escopo}\n\n"
+        f"=== PASTAS TEMÁTICAS (número: tema) ===\n{pastas_lista}\n\n"
+        f"=== TÍTULO: {livro.titulo} ===\n"
+        f"=== CONTEÚDO DO LIVRO (pode estar parcial) ===\n{texto}\n\n"
+        "Responda EXATAMENTE neste formato, em português:\n"
+        "GRAU: <1, 2, 3 ou IRRELEVANTE>\n"
+        "PASTAS: <números das pastas aplicáveis separados por vírgula, ou '-'>\n"
+        "JUSTIFICATIVA: <2 a 4 frases, citando elementos do escopo>"
+    )
+    try:
+        resp = (cliente_ia(prompt) or "").strip()
+    except Exception as e:
+        return ResultadoElegibilidade(
+            True, "regras", 0, f"DÚVIDA (IA indisponível: {e})",
+            grau=GRAU_DUVIDA, pastas=[])
+
+    grau, elegivel, pastas, justif = GRAU_DUVIDA, True, [], resp
+    for linha in resp.splitlines():
+        baixo = linha.strip()
+        up = baixo.upper()
+        if up.startswith("GRAU"):
+            grau, elegivel = _grau_de_rotulo(baixo.split(":", 1)[-1])
+        elif up.startswith("PASTAS"):
+            nums = re.findall(r"\d+", baixo.split(":", 1)[-1])
+            pastas = [mapa[n] for n in nums if n in mapa]
+        elif up.startswith("JUSTIF"):
+            justif = baixo.split(":", 1)[-1].strip()
+
+    return ResultadoElegibilidade(
+        elegivel, "ia", 0, "IA: " + justif.replace("\n", " ").strip()[:400],
+        grau=grau, pastas=pastas)
 
 
 def _avaliar_com_ia(livro, config, cliente_ia, pastas):

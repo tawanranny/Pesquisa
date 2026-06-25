@@ -21,6 +21,7 @@ class LivroLido:
     capitulos: list[Capitulo] = field(default_factory=list)
     sumario_texto: str = ""           # capítulos concatenados (contexto p/ IA)
     inicio_texto: str = ""            # primeiros parágrafos do corpo
+    texto_completo: str = ""          # texto integral (para a IA ler o livro)
     hash_arquivo: str = ""
     erro: str = ""
 

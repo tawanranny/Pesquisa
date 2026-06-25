@@ -22,7 +22,8 @@ def _nivel_titulo(nome_estilo: str | None, style_id: str | None) -> int:
     return 0
 
 
-def ler_docx(caminho: Path, max_inicio_chars: int = 3000) -> LivroLido:
+def ler_docx(caminho: Path, max_inicio_chars: int = 3000,
+             completo: bool = False, max_completo: int = 200000) -> LivroLido:
     livro = LivroLido(
         caminho=caminho, nome_arquivo=caminho.name,
         titulo=caminho.stem, formato="docx",
@@ -35,6 +36,7 @@ def ler_docx(caminho: Path, max_inicio_chars: int = 3000) -> LivroLido:
         return livro
 
     inicio_partes: list[str] = []
+    corpo_partes: list[str] = []   # texto integral (quando completo=True)
     primeiro_titulo1: str | None = None
 
     for p in doc.paragraphs:
@@ -55,6 +57,9 @@ def ler_docx(caminho: Path, max_inicio_chars: int = 3000) -> LivroLido:
         elif len("".join(inicio_partes)) < max_inicio_chars:
             inicio_partes.append(texto)
 
+        if completo and len("".join(corpo_partes)) < max_completo:
+            corpo_partes.append(texto)
+
     if primeiro_titulo1:
         livro.titulo = primeiro_titulo1
 
@@ -62,4 +67,6 @@ def ler_docx(caminho: Path, max_inicio_chars: int = 3000) -> LivroLido:
         ("  " * (c.nivel - 1)) + c.titulo for c in livro.capitulos
     )
     livro.inicio_texto = " ".join(inicio_partes)[:max_inicio_chars]
+    if completo:
+        livro.texto_completo = "\n".join(corpo_partes)[:max_completo]
     return livro

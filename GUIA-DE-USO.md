@@ -89,8 +89,13 @@ Na tela do navegador:
 3. Confira a **"data de corte"**. Já vem **01/07/2025** (2.º semestre de 2025):
    o programa só cataloga livros **adicionados a partir dessa data**. Pode mudar
    se quiser.
-4. Clique em **"🔎 Analisar biblioteca"** e aguarde.
-   - Ele vai abrir **cada livro, um por um**, ler os capítulos e classificar.
+4. Deixe marcado **"A IA lê cada livro e decide"** (recomendado): a IA **lê o
+   conteúdo** de cada obra e julga o grau frente ao escopo — bem mais preciso do
+   que só palavras-chave. (Precisa da IA ligada — Parte 8.)
+5. Clique em **"🔎 Analisar biblioteca"** e aguarde.
+   - Aparece uma **barra de progresso** ("Lendo 12 de 109…"). É normal demorar
+     alguns minutos na primeira vez; **mantenha a janela aberta**.
+   - Os resultados ficam em **cache**: da próxima vez é instantâneo.
    - PDFs escaneados podem demorar mais (veja a Parte 7).
 5. Aparecem:
    - **Resumo**: total, elegíveis, já fichados, falta fichar;

@@ -36,8 +36,9 @@
         </label>
       </div>
       <div class="linha-opcoes">
-        <label class="chk"><input id="usar_ia" type="checkbox" checked> Usar IA nos casos em dúvida</label>
-        <label class="chk"><input id="usar_cache" type="checkbox" checked> Usar cache (economiza tokens)</label>
+        <label class="chk"><input id="modo_ia_total" type="checkbox" checked> <strong>A IA lê cada livro e decide</strong> (mais preciso, mais lento)</label>
+        <label class="chk"><input id="usar_ia" type="checkbox" checked> Usar IA</label>
+        <label class="chk"><input id="usar_cache" type="checkbox" checked> Usar cache (não reprocessa)</label>
         {% if modo_eleitos %}<span class="pill ok">Modo lista de eleitos ativo</span>{% endif %}
         {% if tem_claude_code %}<span class="pill ok">Claude Code detectado</span>{% endif %}
       </div>
@@ -64,6 +65,10 @@
       </fieldset>
       <button id="btn-analisar" class="primario">🔎 Analisar biblioteca</button>
       <span id="status" class="status"></span>
+      <div id="progresso-wrap" class="progresso-wrap oculto">
+        <div class="barra"><div id="barra-fill" class="barra-fill"></div></div>
+        <div id="progresso-texto" class="status"></div>
+      </div>
     </section>
 
     <!-- Avisos -->

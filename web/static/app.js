@@ -27,37 +27,71 @@ async function postJSON(url, dados) {
 }
 
 // ---------------------------------------------------------------- Análise
+let POLL = null;
+
 async function analisar() {
   const status = $("status");
-  status.textContent = "Analisando a biblioteca um a um… (pode demorar com OCR)";
   $("btn-analisar").disabled = true;
+  $("progresso-wrap").classList.remove("oculto");
   try {
     const chave = ($("chave_ia") && $("chave_ia").value) || "";
     const backend = document.querySelector('input[name="backend"]:checked').value;
-    const j = await postJSON("/analisar", {
+    await postJSON("/analisar", {
       pasta_livros: $("pasta_livros").value,
       pasta_fichamentos: $("pasta_fichamentos").value,
       data_corte: $("data_corte").value,
       limiar_fichamento: $("limiar_fichamento").value,
       usar_ia: $("usar_ia").checked,
       usar_cache: $("usar_cache").checked,
+      modo_ia_total: $("modo_ia_total").checked,
       backend: backend,
       chave_ia: chave,
       salvar_chave: $("salvar_chave") && $("salvar_chave").checked,
     });
-    LINHAS = j.linhas; DETALHES = j.detalhes;
-    mostrarAvisos(j.avisos || []);
-    mostrarResumo(j.resumo);
-    montarFiltroGraus(j.resumo.graus);
-    renderTabela();
-    CAT = null; $("tabela-cat").querySelector("tbody").innerHTML = "";
-    $("tabela-cat").querySelector("thead").innerHTML = "";
-    ["resumo", "sec-resultado", "sec-catalogo"].forEach((s) => $(s).classList.remove("oculto"));
-    status.textContent = `✓ ${j.resumo.total} livro(s) catalogado(s) (após o corte de data).`;
+    status.textContent = "Lendo a biblioteca livro a livro…";
+    POLL = setInterval(checarProgresso, 1500);
   } catch (e) {
     status.textContent = "⚠️ " + e.message;
-  } finally {
     $("btn-analisar").disabled = false;
+    $("progresso-wrap").classList.add("oculto");
+  }
+}
+
+async function checarProgresso() {
+  let p;
+  try { p = await (await fetch("/progresso")).json(); }
+  catch (e) { return; }
+
+  if (p.total) {
+    const pct = Math.round((p.i / p.total) * 100);
+    $("barra-fill").style.width = pct + "%";
+    $("progresso-texto").textContent =
+      `Lendo ${p.i} de ${p.total} (${pct}%) — ${p.atual}`;
+  }
+
+  if (!p.rodando) {
+    clearInterval(POLL); POLL = null;
+    $("btn-analisar").disabled = false;
+    if (p.erro) {
+      $("status").textContent = "⚠️ " + p.erro;
+      $("progresso-wrap").classList.add("oculto");
+      return;
+    }
+    if (p.pronto) {
+      const j = p.resultado;
+      LINHAS = j.linhas; DETALHES = j.detalhes;
+      mostrarAvisos(j.avisos || []);
+      mostrarResumo(j.resumo);
+      montarFiltroGraus(j.resumo.graus);
+      renderTabela();
+      CAT = null;
+      $("tabela-cat").querySelector("tbody").innerHTML = "";
+      $("tabela-cat").querySelector("thead").innerHTML = "";
+      ["resumo", "sec-resultado", "sec-catalogo"].forEach((s) => $(s).classList.remove("oculto"));
+      $("barra-fill").style.width = "100%";
+      $("status").textContent = `✓ ${j.resumo.total} livro(s) catalogado(s).`;
+      $("progresso-wrap").classList.add("oculto");
+    }
   }
 }
 

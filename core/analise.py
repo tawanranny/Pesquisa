@@ -11,6 +11,7 @@ from typing import Callable
 from .cache import Cache
 from .datas import apos_corte, data_referencia
 from .elegibilidade import avaliar, carregar_eleitos
+from .elegibilidade import classificar_ia_completo
 from .fichamentos import carregar_fichamentos, encontrar_fichamento
 from .leitura import listar_livros, ler_livro
 
@@ -23,17 +24,25 @@ def analisar(
     limiar_fichamento: int = 80,
     usar_cache: bool = True,
     data_corte: datetime | None = None,
+    modo_ia_total: bool = False,
     progresso: Callable[[int, int, str], None] | None = None,
 ) -> tuple[list[dict], dict[str, list]]:
     """
     Retorna (linhas, detalhes_capitulos).
     `data_corte`: se informado, só cataloga livros cuja data (criação OU
     modificação) seja igual/posterior ao corte.
+    `modo_ia_total`: se True (e houver IA), a IA LÊ o livro inteiro e decide o
+    grau frente ao escopo — em vez do juízo por palavras-chave.
     `progresso(i, total, nome)` é chamado a cada livro (para barra de progresso).
     """
     cache = Cache()
     fichamentos = carregar_fichamentos(pasta_fichamentos)
     eleitos = carregar_eleitos(config)
+    ia_cfg = config.get("ia", {}) or {}
+    # IA-total só faz sentido com IA disponível e sem a lista de eleitos no comando.
+    ia_total = modo_ia_total and cliente_ia is not None and not eleitos
+    max_completo = int(ia_cfg.get("max_caracteres_livro", 200000))
+    paginas_ocr = int(ia_cfg.get("paginas_ocr_completo", 30))
     # Aplica o corte de data já na listagem (varre um a um e descarta antigos).
     todos = listar_livros(pasta_livros)
     arquivos = [c for c in todos if apos_corte(c, data_corte)]
@@ -47,7 +56,8 @@ def analisar(
             progresso(i, total, caminho.name)
 
         data_add = data_referencia(caminho).strftime("%Y-%m-%d")
-        livro = ler_livro(caminho)
+        livro = ler_livro(caminho, completo=ia_total,
+                          max_completo=max_completo, paginas_ocr_completo=paginas_ocr)
         detalhes[caminho.name] = [
             {"titulo": c.titulo, "nivel": c.nivel} for c in livro.capitulos
         ]
@@ -64,9 +74,8 @@ def analisar(
             continue
 
         # --- Elegibilidade ---
-        # O cache só vale a pena para o passo caro (IA). Com lista de eleitos ou
-        # só regras o custo é zero, então recalculamos (evita resultado velho se
-        # a lista/critérios mudarem).
+        # No modo IA-total, a IA lê o livro inteiro (passo caro): vale cachear.
+        # Com lista de eleitos ou só regras o custo é zero -> recalcula sempre.
         usar_cache_aqui = usar_cache and eleitos == []
         cacheado = cache.obter(livro.hash_arquivo) if usar_cache_aqui else None
         if cacheado:
@@ -76,10 +85,13 @@ def analisar(
             grau = cacheado.get("grau", "")
             pastas = cacheado.get("pastas", [])
         else:
-            res = avaliar(livro, config, cliente_ia, eleitos=eleitos)
+            if ia_total:
+                res = classificar_ia_completo(livro, config, cliente_ia)
+            else:
+                res = avaliar(livro, config, cliente_ia, eleitos=eleitos)
             elegivel, metodo, motivo = res.elegivel, res.metodo, res.motivo
             grau, pastas = res.grau, res.pastas
-            # Só guarda no cache quando a IA foi usada (o passo que gasta token).
+            # Guarda no cache quando a IA decidiu (o passo demorado).
             if usar_cache_aqui and metodo == "ia":
                 cache.salvar(livro.hash_arquivo, {
                     "elegivel": elegivel, "metodo": metodo, "motivo": motivo,

@@ -55,7 +55,9 @@ def _ocr_paginas(caminho: Path, max_paginas: int) -> str:
         return ""
 
 
-def ler_pdf(caminho: Path, max_inicio_chars: int = 3000) -> LivroLido:
+def ler_pdf(caminho: Path, max_inicio_chars: int = 3000,
+            completo: bool = False, max_completo: int = 200000,
+            paginas_ocr_completo: int = 30) -> LivroLido:
     livro = LivroLido(
         caminho=caminho, nome_arquivo=caminho.name,
         titulo=caminho.stem, formato="pdf-texto",
@@ -71,14 +73,16 @@ def ler_pdf(caminho: Path, max_inicio_chars: int = 3000) -> LivroLido:
     # 1) Capítulos pelos marcadores embutidos.
     livro.capitulos = _extrair_outline(reader)
 
-    # 2) Texto direto das primeiras páginas.
+    # 2) Texto direto. Em modo completo, percorre TODAS as páginas (até o limite).
+    limite_paginas = len(reader.pages) if completo else PAGINAS_OCR
+    teto = max_completo if completo else max_inicio_chars * 2
     partes: list[str] = []
     try:
-        for pagina in reader.pages[:PAGINAS_OCR]:
+        for pagina in reader.pages[:limite_paginas]:
             t = pagina.extract_text() or ""
             if t:
                 partes.append(t)
-            if len("".join(partes)) > max_inicio_chars * 2:
+            if len("".join(partes)) > teto:
                 break
     except Exception:
         pass
@@ -86,23 +90,32 @@ def ler_pdf(caminho: Path, max_inicio_chars: int = 3000) -> LivroLido:
 
     # 3) PDF escaneado? Pouco/nenhum texto -> tenta OCR.
     if len(texto) < MIN_TEXTO_VALIDO:
-        ocr = _ocr_paginas(caminho, PAGINAS_OCR)
+        n_ocr = paginas_ocr_completo if completo else PAGINAS_OCR
+        ocr = _ocr_paginas(caminho, n_ocr)
         if ocr:
             texto = ocr
             livro.formato = "pdf-ocr"
         else:
             # Sem texto e sem OCR: NÃO é erro fatal. Ainda dá para avaliar
-            # elegibilidade pelo título (modo lista) e ler capítulos do outline.
+            # pelo título (modo lista) e ler capítulos do outline.
             livro.formato = "pdf-sem-texto"
 
-    # Metadados: título do PDF, se houver.
+    # Metadados: título do PDF, se for útil (ignora genéricos tipo "untitled").
     try:
         if reader.metadata and reader.metadata.title:
-            livro.titulo = str(reader.metadata.title).strip()
+            t = str(reader.metadata.title).strip()
+            generico = t.lower() in {
+                "untitled", "sem título", "sem titulo", "anonymous", "documento",
+                "document", "pdf", "microsoft word",
+            } or t.lower().startswith("microsoft word -")
+            if len(t) >= 4 and not generico:
+                livro.titulo = t
     except Exception:
         pass
 
     livro.inicio_texto = texto[:max_inicio_chars]
+    if completo:
+        livro.texto_completo = texto[:max_completo]
     if livro.capitulos:
         livro.sumario_texto = "\n".join(
             ("  " * (c.nivel - 1)) + c.titulo for c in livro.capitulos

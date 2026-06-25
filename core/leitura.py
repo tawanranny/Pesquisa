@@ -13,12 +13,15 @@ from .modelos import LivroLido
 EXTENSOES = (".docx", ".pdf")
 
 
-def ler_livro(caminho: Path) -> LivroLido:
+def ler_livro(caminho: Path, completo: bool = False,
+              max_completo: int = 200000,
+              paginas_ocr_completo: int = 30) -> LivroLido:
     suf = caminho.suffix.lower()
     if suf == ".docx":
-        return ler_docx(caminho)
+        return ler_docx(caminho, completo=completo, max_completo=max_completo)
     if suf == ".pdf":
-        return ler_pdf(caminho)
+        return ler_pdf(caminho, completo=completo, max_completo=max_completo,
+                       paginas_ocr_completo=paginas_ocr_completo)
     livro = LivroLido(caminho=caminho, nome_arquivo=caminho.name,
                       titulo=caminho.stem)
     livro.erro = f"Formato não suportado: {suf}"

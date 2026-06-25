@@ -275,8 +275,12 @@ pastas_tematicas:
     - "verbeke"
 
 # ---------------------------------------------------------------------------
-# 7. CONFIGURAÇÃO DA IA (usada só quando as regras não acham nenhum sinal)
+# 7. CONFIGURAÇÃO DA IA
+#    No modo "A IA lê cada livro e decide" (recomendado), a IA recebe o texto
+#    do livro e o escopo acima, e julga o grau de incorporação + pastas.
 # ---------------------------------------------------------------------------
 ia:
-  modelo: "claude-haiku-4-5-20251001"
-  max_caracteres_contexto: 4000
+  modelo: "claude-haiku-4-5-20251001"   # usado só no modo por API
+  max_caracteres_contexto: 4000         # contexto no modo híbrido (palavras-chave)
+  max_caracteres_livro: 200000          # quanto do livro enviar à IA (modo IA-total)
+  paginas_ocr_completo: 30              # nº de páginas a passar por OCR (escaneados)

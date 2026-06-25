@@ -37,8 +37,12 @@ app = Flask(__name__, template_folder="web/templates", static_folder="web/static
 CAMINHO_CONFIG = Path("config/criterios_raip.yaml")
 CAMINHO_ELEITOS = Path("config/livros_eleitos.txt")
 
-# Estado da última análise (para exportações e catálogo).
-ESTADO: dict = {"linhas": [], "detalhes": {}}
+# Estado da última análise (para exportações, catálogo e progresso).
+ESTADO: dict = {
+    "linhas": [], "detalhes": {},
+    "rodando": False, "i": 0, "total": 0, "atual": "",
+    "resultado": None, "erro": None,
+}
 
 
 def carregar_config() -> dict:
@@ -83,6 +87,9 @@ def index():
 
 @app.route("/analisar", methods=["POST"])
 def rota_analisar():
+    if ESTADO["rodando"]:
+        return jsonify({"erro": "Uma análise já está em andamento."}), 409
+
     d = request.get_json(force=True)
     pasta_livros = Path(d.get("pasta_livros", "").strip())
     pasta_fichamentos = Path(d.get("pasta_fichamentos", "").strip())
@@ -100,35 +107,61 @@ def rota_analisar():
     backend = d.get("backend", "max")  # "max" (Claude Code) ou "api"
     chave_ia = (d.get("chave_ia") or "").strip()
     usar_ia = bool(d.get("usar_ia")) or bool(chave_ia) or backend == "max"
+    modo_ia_total = bool(d.get("modo_ia_total", True))
     cliente_ia = criar_cliente_ia(usar_ia, backend, chave_ia, cfg)
     ia_indisponivel = usar_ia and cliente_ia is None
-    # Guarda a chave da API para as próximas vezes, se o usuário pediu.
     if backend == "api" and d.get("salvar_chave") and chave_ia:
         try:
             Path(".env").write_text(f"ANTHROPIC_API_KEY={chave_ia}\n", encoding="utf-8")
         except Exception:
             pass
-    try:
-        linhas, detalhes = analisar(
-            pasta_livros, pasta_fichamentos, cfg,
-            cliente_ia=cliente_ia,
-            limiar_fichamento=int(d.get("limiar_fichamento", 80)),
-            usar_cache=bool(d.get("usar_cache", True)),
-            data_corte=corte,
-        )
-    except Exception as e:
-        return jsonify({"erro": f"Falha na análise: {e}"}), 500
 
-    ESTADO["linhas"] = linhas
-    ESTADO["detalhes"] = detalhes
+    limiar_fichamento = int(d.get("limiar_fichamento", 80))
+    usar_cache = bool(d.get("usar_cache", True))
 
+    def tarefa():
+        try:
+            def prog(i, total, nome):
+                ESTADO.update(i=i, total=total, atual=nome)
+            linhas, detalhes = analisar(
+                pasta_livros, pasta_fichamentos, cfg,
+                cliente_ia=cliente_ia, limiar_fichamento=limiar_fichamento,
+                usar_cache=usar_cache, data_corte=corte,
+                modo_ia_total=modo_ia_total, progresso=prog,
+            )
+            ESTADO["linhas"] = linhas
+            ESTADO["detalhes"] = detalhes
+            ESTADO["resultado"] = _montar_resultado(
+                linhas, detalhes, cliente_ia, backend, ia_indisponivel)
+        except Exception as e:
+            ESTADO["erro"] = f"Falha na análise: {e}"
+        finally:
+            ESTADO["rodando"] = False
+
+    ESTADO.update(rodando=True, i=0, total=0, atual="",
+                  resultado=None, erro=None)
+    threading.Thread(target=tarefa, daemon=True).start()
+    return jsonify({"iniciado": True})
+
+
+@app.route("/progresso")
+def rota_progresso():
+    return jsonify({
+        "rodando": ESTADO["rodando"],
+        "i": ESTADO["i"], "total": ESTADO["total"], "atual": ESTADO["atual"],
+        "erro": ESTADO["erro"],
+        "pronto": ESTADO["resultado"] is not None,
+        "resultado": ESTADO["resultado"],
+    })
+
+
+def _montar_resultado(linhas, detalhes, cliente_ia, backend, ia_indisponivel):
     elegiveis = [l for l in linhas if l.get("Elegível") == "Sim"]
     falta = [l for l in elegiveis if l.get("Fichado?") == "Não"]
     graus: dict[str, int] = {}
     for l in linhas:
         graus[l.get("Grau", "")] = graus.get(l.get("Grau", ""), 0) + 1
 
-    # Diagnóstico das dúvidas e da IA.
     n_duvida = sum(1 for l in linhas if str(l.get("Grau", "")).startswith("Dúvida"))
     n_sem_texto = sum(1 for l in linhas if l.get("Formato") == "pdf-sem-texto")
     n_ia = sum(1 for l in linhas if l.get("Método") == "ia")
@@ -138,40 +171,32 @@ def rota_analisar():
     if ia_indisponivel and backend == "max":
         avisos.append(
             "Você escolheu usar o plano Max (Claude Code), mas o Claude Code não "
-            f"foi encontrado no computador — por isso os {n_duvida} caso(s) em "
-            "dúvida ficaram para revisão. Instale o Claude Code e faça login com "
-            "sua conta Max (Parte 8 do guia)."
+            "foi encontrado/logado — as decisões da IA não rodaram. Finalize a "
+            "instalação e o login (Parte 8 do guia)."
         )
     elif ia_indisponivel:
         avisos.append(
-            "Você marcou usar IA por API, mas não há chave configurada — por isso "
-            f"os {n_duvida} caso(s) em dúvida ficaram para revisão. Cole a chave no "
-            "campo 🔑 da tela (Parte 8 do guia)."
+            "Você marcou usar IA por API, mas não há chave configurada. Cole a "
+            "chave no campo 🔑 da tela (Parte 8 do guia)."
         )
     if n_ia_erro:
-        avisos.append(f"{n_ia_erro} chamada(s) de IA falharam (verifique a chave/conexão).")
+        avisos.append(f"{n_ia_erro} leitura(s) pela IA falharam (verifique conexão/login).")
     if n_sem_texto:
         avisos.append(
-            f"{n_sem_texto} livro(s) são PDF escaneado SEM OCR: só o título foi lido. "
-            "Instale o OCR (Parte 7 do guia) para ler o conteúdo desses."
+            f"{n_sem_texto} livro(s) são PDF escaneado SEM OCR: a IA recebeu pouco "
+            "ou nenhum texto desses. Instale o OCR (Parte 7) para a IA lê-los."
         )
 
-    return jsonify({
-        "linhas": linhas,
-        "detalhes": detalhes,
-        "avisos": avisos,
+    return {
+        "linhas": linhas, "detalhes": detalhes, "avisos": avisos,
         "resumo": {
-            "total": len(linhas),
-            "elegiveis": len(elegiveis),
+            "total": len(linhas), "elegiveis": len(elegiveis),
             "fichados": sum(1 for l in elegiveis if l.get("Fichado?") == "Sim"),
-            "falta_fichar": len(falta),
-            "graus": graus,
-            "duvidas": n_duvida,
-            "sem_texto": n_sem_texto,
-            "ia_usada": n_ia,
-            "ia_ativa": cliente_ia is not None,
+            "falta_fichar": len(falta), "graus": graus,
+            "duvidas": n_duvida, "sem_texto": n_sem_texto,
+            "ia_usada": n_ia, "ia_ativa": cliente_ia is not None,
         },
-    })
+    }
 
 
 @app.route("/catalogo/dados", methods=["POST"])
@@ -245,4 +270,4 @@ def _abrir_navegador():
 if __name__ == "__main__":
     if os.getenv("WERKZEUG_RUN_MAIN") != "true":
         threading.Timer(1.2, _abrir_navegador).start()
-    app.run(host="127.0.0.1", port=5000, debug=False)
+    app.run(host="127.0.0.1", port=5000, debug=False, threaded=True)
