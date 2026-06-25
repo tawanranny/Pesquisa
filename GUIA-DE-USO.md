@@ -206,6 +206,7 @@ um **custo baixo** (alguns centavos para a biblioteca toda; mínimo de crédito 
 | "Python não encontrado" na janela preta | Refaça a Parte 1 e **marque "Add Python to PATH"**. |
 | **`claude` "não é reconhecido"** no PowerShell | **Feche e reabra o PowerShell** (o atalho só vale em janelas novas). Se persistir: confira `npm --version`; reinstale o Node (LTS) e reinicie; ou use o instalador nativo `irm https://claude.ai/install.ps1 \| iex`. |
 | **npm:** *"execução de scripts foi desabilitada"* / `UnauthorizedAccess` | O Windows bloqueia scripts. Rode `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` (confirme com **S**) e instale de novo. Alternativa: use `npm.cmd install -g @anthropic-ai/claude-code`. |
+| **`claude`:** *"requires either Git for Windows or PowerShell 7"* | Instale o **Git for Windows** (https://git-scm.com/download/win, tudo no padrão), **reabra o PowerShell** e rode `claude` de novo. Se persistir: `setx CLAUDE_CODE_GIT_BASH_PATH "C:\Program Files\Git\bin\bash.exe"` e reabra. |
 | Ao rodar `claude`, ele pede uma **API key** | Você escolheu a opção errada de login. Rode `claude` de novo e selecione a opção da **conta/assinatura (Pro/Max)**, não a de API. |
 | O **app** pede chave mesmo no modo Max | No modo **"Usar meu plano Max"** não é preciso chave. Se o app insiste, o `claude` ainda não está instalado/logado — finalize a Parte 8. Se você nem vê a opção "Usar meu plano Max", **rebaixe o programa** (Parte 2). |
 | O navegador não abriu sozinho | Digite **http://127.0.0.1:5000** na barra do navegador. |
