@@ -19,17 +19,19 @@ def claude_code_disponivel() -> bool:
 
 
 def backend_claude_code(modelo: str | None = None, timeout: int = 120):
-    """Usa o Claude Code (assinatura Max) via linha de comando."""
+    """Usa o Claude Code (assinatura Max) via linha de comando.
+    O prompt vai pela ENTRADA PADRÃO (stdin), não como argumento — assim textos
+    longos com várias linhas (ex.: o escopo) não são cortados no Windows."""
     exe = shutil.which("claude")
     if not exe:
         return None
 
     def perguntar(prompt: str) -> str:
-        cmd = [exe, "-p", prompt]
+        cmd = [exe, "-p"]
         if modelo:
             cmd += ["--model", modelo]
         r = subprocess.run(
-            cmd, capture_output=True, text=True,
+            cmd, input=prompt, capture_output=True, text=True,
             encoding="utf-8", errors="replace", timeout=timeout,
         )
         if r.returncode != 0:
